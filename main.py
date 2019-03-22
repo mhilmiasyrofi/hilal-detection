@@ -70,20 +70,30 @@ if __name__ == "__main__":
     img = cv2.imread(im_name, 0)
     img = resizeImage(img)
     
+    blur_size = 5
+    windows["blur"].addTrackbar("blur_size", 0, 15, callback)
+    windows["blur"].setTrackbarPos("blur_size", blur_size)
+
     canny_min_val = 100
     canny_max_val = 200
     windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
     windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
     windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
     windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
-    
-    while (1):
 
+    while (1):
+        
+        windows["raw_image"].setImage(img)
         windows["raw_image"].showWindow()
+
+        blur_size = windows["blur"].getTrackbarPos("blur_size")
+        blur = cv2.GaussianBlur(img, (blur_size*2 + 1, blur_size*2 + 1), 0)
+        windows["blur"].setImage(blur)
+        windows["blur"].showWindow()
 
         canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
         canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
-        edge = cv2.Canny(img, canny_min_val, canny_max_val)
+        edge = cv2.Canny(blur, canny_min_val, canny_max_val)
         windows["canny_edge"].setImage(edge)  
         windows["canny_edge"].showWindow()
 
