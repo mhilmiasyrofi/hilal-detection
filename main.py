@@ -2,9 +2,9 @@ import cv2
 import numpy as np
 
 
-windows_name = ["raw_image", "lhe", "canny", "hough_transform"]
+windows_name = ["raw_image", "lhe", "blur", "canny_edge", "hough_transform"]
 # LHE = Local Histogram equalization
-removed = ["lhe", "canny", "hough_transform"]
+removed = ["lhe", "hough_transform"]
 
 for r in removed :
     windows_name.remove(r)
@@ -65,37 +65,31 @@ if __name__ == "__main__":
     for w in windows_name :
         windows[w] = Window(w)
 
-    im_name = "data/hilal2.jpg"
-    # im_name = "data/hilal.jpg"
+    # im_name = "data/hilal2.jpg"
+    im_name = "data/hilal.jpg"
     img = cv2.imread(im_name, 0)
     img = resizeImage(img)
     
-    windows["raw_image"].setImage(img)
+    canny_min_val = 100
+    canny_max_val = 200
+    windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
+    windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
+    windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
+    windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
+    
+    while (1):
 
-    # # create trackbars for color change
-    # cv2.createTrackbar('R', 'image', 0, 255, callback)
-    # cv2.createTrackbar('G', 'image', 0, 255, callback)
-    # cv2.createTrackbar('B', 'image', 0, 255, callback)
-
-    # # create switch for ON/OFF functionality
-    # switch = '0 : OFF \n1 : ON'
-    # cv2.createTrackbar(switch, 'image', 0, 1, callback)
-
-    while(1):
         windows["raw_image"].showWindow()
+
+        canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
+        canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+        edge = cv2.Canny(img, canny_min_val, canny_max_val)
+        windows["canny_edge"].setImage(edge)  
+        windows["canny_edge"].showWindow()
+
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
             break
 
-        # # get current positions of four trackbars
-        # r = cv2.getTrackbarPos('R', 'image')
-        # g = cv2.getTrackbarPos('G', 'image')
-        # b = cv2.getTrackbarPos('B', 'image')
-        # s = cv2.getTrackbarPos(switch, 'image')
-
-        # if s == 0:
-        #     img[:] = 0
-        # else:
-        #     img[:] = [b, g, r]
 
 
