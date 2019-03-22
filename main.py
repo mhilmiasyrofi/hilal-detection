@@ -1,10 +1,9 @@
 import cv2
 import numpy as np
 
-
-windows_name = ["raw_image", "lhe", "blur", "canny_edge", "hough_transform"]
+windows_name = ["raw_image", "lhe", "blur", "canny_edge", "circle_hough_transform"]
 # LHE = Local Histogram equalization
-removed = ["lhe", "hough_transform"]
+removed = ["lhe"]
 
 for r in removed :
     windows_name.remove(r)
@@ -51,9 +50,9 @@ class Window :
 
 
 def resizeImage(img) :
-    if img.shape[0] > 400 :
-        h = img.shape[0] * 400 / img.shape[0]
-        w = img.shape[1] * 400 / img.shape[0]
+    if img.shape[0] > 300 :
+        h = img.shape[0] * 300 / img.shape[0]
+        w = img.shape[1] * 300 / img.shape[0]
         img = cv2.resize(img, (int(w), int(h)))
     return img
 
@@ -66,22 +65,43 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # im_name = "data/hilal2.jpg"
-    im_name = "data/hilal.jpg"
+    # im_name = "data/hilal.jpg"
+    im_name = "data/frame.jpg"
     img = cv2.imread(im_name, 0)
     img = resizeImage(img)
     
-    blur_size = 5
+    ### BLUR
+    blur_size = 4
     windows["blur"].addTrackbar("blur_size", 0, 15, callback)
     windows["blur"].setTrackbarPos("blur_size", blur_size)
 
-    canny_min_val = 100
-    canny_max_val = 200
+    ### CANNY EDGE DETECTOR
+    canny_min_val = 34
+    canny_max_val = 159
     windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
     windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
     windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
     windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
 
-    while (1):
+    ### CIRCLE HOUGH TRANSFORM
+    circles = []
+    cht_min_dist = 20
+    cht_param1 = 42
+    cht_param2 = 14
+    cht_min_radius = 90
+    cht_max_radius = 1000
+    windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_param1", 0, 100, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_param2", 0, 100, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 1000, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_max_radius", 0, 1000, callback)
+    windows["circle_hough_transform"].setTrackbarPos("cht_min_dist", cht_min_dist)
+    windows["circle_hough_transform"].setTrackbarPos("cht_param1", cht_param1)
+    windows["circle_hough_transform"].setTrackbarPos("cht_param2", cht_param2)
+    windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_radius)
+    windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
+
+    while (True):
         
         windows["raw_image"].setImage(img)
         windows["raw_image"].showWindow()
@@ -96,6 +116,26 @@ if __name__ == "__main__":
         edge = cv2.Canny(blur, canny_min_val, canny_max_val)
         windows["canny_edge"].setImage(edge)  
         windows["canny_edge"].showWindow()
+
+        cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
+        cht_param1 = windows["circle_hough_transform"].getTrackbarPos("cht_param1")
+        cht_param2 = windows["circle_hough_transform"].getTrackbarPos("cht_param2")
+        cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
+        cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
+        
+        circle_img = img.copy()
+        circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, cht_min_dist, param1=cht_param1, param2=cht_param2, minRadius=cht_min_radius, maxRadius=cht_max_radius)
+        
+        if not circles is None :
+            circles = np.uint16(np.around(circles))
+            for i in circles[0,:] :
+                # draw the outer circle
+                cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
+                # draw the center of the circle
+                cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
+
+        windows["circle_hough_transform"].setImage(circle_img)
+        windows["circle_hough_transform"].showWindow()
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
