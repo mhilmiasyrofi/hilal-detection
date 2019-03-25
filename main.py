@@ -155,8 +155,9 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # im_name = "data/hilal2.jpg"
-    im_name = "data/hilal.jpg"
-    # im_name = "data/frame.jpg"
+    # im_name = "data/hilal1.jpg"
+    # im_name = "data/hilal.jpg"
+    im_name = "data/frame.jpg"
     img = cv2.imread(im_name)
     img = resizeImage(img)
 
@@ -217,7 +218,6 @@ if __name__ == "__main__":
         windows["raw_image"].showWindow()
         enhanced_image = img.copy()
 
-
         image_enhancement_mode = windows["raw_image"].getTrackbarPos("image_enhancement_mode")
         if (image_enhancement_mode == MODE_POWER_LOW):
             power = windows["power_law"].getTrackbarPos("power")
@@ -258,8 +258,6 @@ if __name__ == "__main__":
             windows["power_law"].showWindow()
             windows["clahe"].setImage(empty_image)
             windows["clahe"].showWindow()
-            
-
 
 
         blur_size = windows["blur"].getTrackbarPos("blur_size")
