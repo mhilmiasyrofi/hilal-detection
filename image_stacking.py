@@ -159,7 +159,7 @@ if __name__ == "__main__":
     # im_name = "data/hilal1.jpg"
     # im_name = "data/hilal.jpg"
     # Create a VideoCapture object
-    cap = cv2.VideoCapture("data/video.avi")
+    cap = cv2.VideoCapture("data/F000000.avi")
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -227,10 +227,15 @@ if __name__ == "__main__":
 
     i = 0
     images = []
-
+    raw_img = None
     stacked_image = None
     while (True):
         ret, img = cap.read()
+        # print(ret)
+        if ret == True :
+            raw_img = img.copy()
+        # print(img.shape)
+        # img = resizeImage(img)
 
         i += 1
         
@@ -239,8 +244,8 @@ if __name__ == "__main__":
             windows["raw_image"].showWindow()
             enhanced_image = img.copy()
 
-            if i >= 30 :
-                images.append(img)
+            # if i >= 30 :
+            images.append(img)
                 
             # Press Q on keyboard to stop recording
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -249,18 +254,32 @@ if __name__ == "__main__":
         # Break the loop
         else:
             stacked_image = images[0].astype(np.float64)
-            for i in range(1, 100) :
-                stacked_image = stacked_image + images[i]
+            if i <= 100 :
+                for i in range(1, i-1) :
+                    # print("DEBUG")
+                    # print(i)
+                    stacked_image = stacked_image + images[i]
+            else :
+                for i in range(i-100, i) :
+                    stacked_image = stacked_image + images[i]
             break
             # print(img)
-    stacked_image = resizeImage(stacked_image)
+    # stacked_image = resizeImage(stacked_image)
+    
+    
     while (True) :
         img_back = stacked_image.copy()
         img_back = img_back.astype(np.float32) / img_back.max()
         img_back = 255 * img_back  # Now scale by 255
         img = img_back.astype(np.uint8)
+        enhanced_image = resizeImage(img)
+        raw = raw_img.copy()
+        raw = resizeImage(raw)
 
-        windows["image_stacking"].setImage(img)
+        windows["raw_image"].setImage(raw)
+        windows["raw_image"].showWindow()
+
+        windows["image_stacking"].setImage(enhanced_image)
         windows["image_stacking"].showWindow()
         
         image_enhancement_mode = windows["raw_image"].getTrackbarPos("image_enhancement_mode")
@@ -322,7 +341,7 @@ if __name__ == "__main__":
         cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
         cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
 
-        circle_img = img.copy()
+        circle_img = enhanced_image.copy()
         circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, cht_min_dist, param1=cht_param1, param2=cht_param2, minRadius=cht_min_radius, maxRadius=cht_max_radius)
 
         if not circles is None :
