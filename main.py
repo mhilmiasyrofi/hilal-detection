@@ -8,6 +8,8 @@ windows_name = ["raw_image", "clahe", "power_law", "gamma_transformation",
 # removed = ["blur", "canny_edge", "circle_hough_transform"]
 removed = []
 
+ 
+
 MODE_POWER_LOW = 1
 MODE_GAMMA_CORRECTION = 2
 MODE_CLAHE = 3
@@ -154,10 +156,10 @@ if __name__ == "__main__":
     for w in windows_name:
         windows[w] = Window(w)
 
-    # im_name = "data/hilal2.jpg"
+    im_name = "data/hilal2.jpg"
     # im_name = "data/hilal1.jpg"
     # im_name = "data/hilal.jpg"
-    im_name = "data/frame.jpg"
+    # im_name = "data/frame.jpg"
     img = cv2.imread(im_name)
     img = resizeImage(img)
 
@@ -284,8 +286,8 @@ if __name__ == "__main__":
             circles = np.uint16(np.around(circles))
             for i in circles[0,:] :
                 # draw the outer circle
-                cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
                 # draw the center of the circle
+                cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
                 cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
 
         windows["circle_hough_transform"].setImage(circle_img)

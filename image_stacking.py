@@ -159,7 +159,8 @@ if __name__ == "__main__":
     # im_name = "data/hilal1.jpg"
     # im_name = "data/hilal.jpg"
     # Create a VideoCapture object
-    cap = cv2.VideoCapture("data/F000000.avi")
+    cap = cv2.VideoCapture("data/video.avi")
+    # cap = cv2.VideoCapture("data/F000000.avi")
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -244,8 +245,8 @@ if __name__ == "__main__":
             windows["raw_image"].showWindow()
             enhanced_image = img.copy()
 
-            # if i >= 30 :
-            images.append(img)
+            if i >= 30 :
+                images.append(img)
                 
             # Press Q on keyboard to stop recording
             if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -260,7 +261,7 @@ if __name__ == "__main__":
                     # print(i)
                     stacked_image = stacked_image + images[i]
             else :
-                for i in range(i-100, i) :
+                for i in range(1, 100) :
                     stacked_image = stacked_image + images[i]
             break
             # print(img)
