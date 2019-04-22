@@ -1,5 +1,7 @@
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
+
 
 windows_name = ["raw_image", "clahe", "power_law", "gamma_transformation",
                 "blur", "canny_edge", "circle_hough_transform"]
@@ -265,13 +267,25 @@ if __name__ == "__main__":
         blur_size = windows["blur"].getTrackbarPos("blur_size")
         blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
         windows["blur"].setImage(blur)
-        windows["blur"].showWindow()
-
+        # windows["blur"].showWindow()
+        
+        h = np.zeros((300, 256, 3))
+        bins = np.arange(256).reshape(256, 1)
+        color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+        for ch, col in enumerate(color):
+            hist_item = cv2.calcHist([blur], [ch], None, [256], [0, 256])
+            cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
+            hist = np.int32(np.around(hist_item))
+            pts = np.column_stack((bins, hist))
+            cv2.polylines(h, [pts], False, col)
+        h = np.flipud(h)
+        cv2.imshow('colorhist', h)
+        
         canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
         canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
         edge = cv2.Canny(blur, canny_min_val, canny_max_val)
         windows["canny_edge"].setImage(edge)
-        windows["canny_edge"].showWindow()
+        # windows["canny_edge"].showWindow()
 
         cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
         cht_param1 = windows["circle_hough_transform"].getTrackbarPos("cht_param1")
@@ -291,7 +305,7 @@ if __name__ == "__main__":
                 cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
 
         windows["circle_hough_transform"].setImage(circle_img)
-        windows["circle_hough_transform"].showWindow()
+        # windows["circle_hough_transform"].showWindow()
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
