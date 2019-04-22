@@ -166,6 +166,16 @@ def fourierTransform(img, magnitude):
 
     return img
 
+def release_list(l):
+   del l[:]
+   del l
+
+def flatProcessor(img, flat) :
+    img = img/flat
+    img *= 255
+    img = img.astype(np.uint8)
+    return img
+
 def saveConfiguration(filename) :
     # update variable value
     parameters[parameters.index("cht_max_radius")+1] = str(image_enhancement_mode)
@@ -183,13 +193,9 @@ def saveConfiguration(filename) :
     parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
     parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
 
-
     fw = open(filename, "w")
-
     [fw.write(p + "\n") for p in parameters]
-
     fw.close()
-
 
 def signal_handler(sig, frame):
         saveConfiguration("parameters.txt")
@@ -205,10 +211,14 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    filename = "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi"
+    # filename = "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi"
+    filename = "data/Video Hilal/Data1/hilal/10_41_25.avi"
     # filename = "data/video.avi"
     # filename = "data/F000000.avi"
     cap = cv2.VideoCapture(filename)
+
+    flat_image = None
+    # flat_image = cv2.imread("data/Video Hilal/Data1/Flat/flat.jpg")
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -280,46 +290,43 @@ if __name__ == "__main__":
     windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_radius)
     windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
     
-
     i = 0
     images = []
     raw_img = None
     stacked_image = None
     while (True):
         ret, img = cap.read()
-        if ret == True :
-            raw_img = img.copy()
 
-        i += 1
-        
-        if ret == True: 
+        if ret == True and i <= 100: 
+            if not flat_image == None :
+                img = flatProcessor(img, flat_image)
+            raw_img = img.copy()
             windows["raw_image"].setImage(img)
             windows["raw_image"].showWindow()
             enhanced_image = img.copy()
 
-            if i >= 30 :
-                images.append(img)
+            # if i >= 30 :
+            images.append(img)
+            i += 1
                 
-            # Press Q on keyboard to stop recording
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break
-        
         # Break the loop
         else:
             stacked_image = images[0].astype(np.float64)
-            if i <= 100 :
-                for i in range(1, i-1) :
-                    stacked_image = stacked_image + images[i]
-            else :
-                for i in range(1, 100) :
-                    stacked_image = stacked_image + images[i]
-            break 
+            for i in range(1, i) :
+                stacked_image += images[i]
+            break
+            # if i <= 100 :
+            # else :
+            #     for i in range(1, 100) :
+            #         stacked_image += images[i]
+            # break 
+    release_list(images)
+
+    stacked_image = stacked_image/i
+    stacked_image = stacked_image.astype(np.uint8)
     
     while (True) :
-        img_back = stacked_image.copy()
-        img_back = img_back.astype(np.float32) / img_back.max()
-        img_back = 255 * img_back  # Now scale by 255
-        img = img_back.astype(np.uint8)
+        img = stacked_image.copy()
         enhanced_image = resizeImage(img)
         raw = raw_img.copy()
         raw = resizeImage(raw)
@@ -370,12 +377,10 @@ if __name__ == "__main__":
             windows["clahe"].setImage(empty_image)
             windows["clahe"].showWindow()
 
-
         blur_size = windows["blur"].getTrackbarPos("blur_size")
         blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
         windows["blur"].setImage(blur)
         windows["blur"].showWindow()
-
 
         canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
         canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
