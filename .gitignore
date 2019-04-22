@@ -41,4 +41,4 @@ config.rst
 package-lock.json
 
 # ignore big video files
-/data/*.avi
+/data/
