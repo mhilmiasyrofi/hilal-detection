@@ -1,6 +1,8 @@
 import cv2
 import numpy as np
 from matplotlib import pyplot as plt
+import signal
+import sys
 
 windows_name = ["raw_image", "image_stacking"]
 windows_name = ["raw_image", "image_stacking", "clahe", "power_law", "gamma_transformation",
@@ -16,6 +18,22 @@ MODE_CLAHE = 3
 MODE_FOURIER_TRANSFORM = 4
 
 empty_image = np.zeros((1, 1, 3), np.uint8)
+
+# Variable initiation
+parameters = []
+image_enhancement_mode = None
+power = None
+gamma = None
+clip_limit = None
+tile_grid_size = None
+blur_size = None
+canny_min_val = None
+canny_max_val = None
+cht_min_dist = None
+cht_param1 = None
+cht_param2 = None
+cht_min_radius = None
+cht_max_radius = None
 
 for r in removed:
     windows_name.remove(r)
@@ -148,22 +166,49 @@ def fourierTransform(img, magnitude):
 
     return img
 
+def saveConfiguration(filename) :
+    # update variable value
+    parameters[parameters.index("cht_max_radius")+1] = str(image_enhancement_mode)
+    parameters[parameters.index("power")+1] = str(power)
+    parameters[parameters.index("gamma")+1] = str(gamma)
+    parameters[parameters.index("clip_limit")+1] = str(clip_limit)
+    parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
+    parameters[parameters.index("blur_size")+1] = str(blur_size)
+    parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
+    parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
+    parameters[parameters.index("canny_max_val")+1] = str(canny_max_val)
+    parameters[parameters.index("cht_min_dist")+1] = str(cht_min_dist)
+    parameters[parameters.index("cht_param1")+1] = str(cht_param1)
+    parameters[parameters.index("cht_param2")+1] = str(cht_param2)
+    parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
+    parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
+
+
+    fw = open(filename, "w")
+
+    [fw.write(p + "\n") for p in parameters]
+
+    fw.close()
+
+
+def signal_handler(sig, frame):
+        saveConfiguration("parameters.txt")
+        sys.exit(0)
 
 if __name__ == "__main__":
 
+    signal.signal(signal.SIGINT, signal_handler)
+    
     windows = {}
 
     for w in windows_name:
         windows[w] = Window(w)
 
-    # im_name = "data/hilal2.jpg"
-    # im_name = "data/hilal1.jpg"
-    # im_name = "data/hilal.jpg"
     # Create a VideoCapture object
-    cap = cv2.VideoCapture(
-        "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi")
-    # cap = cv2.VideoCapture("data/video.avi")
-    # cap = cv2.VideoCapture("data/F000000.avi")
+    filename = "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi"
+    # filename = "data/video.avi"
+    # filename = "data/F000000.avi"
+    cap = cv2.VideoCapture(filename)
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -174,10 +219,7 @@ if __name__ == "__main__":
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
 
-    # img = cv2.imread(im_name)
-    # img = resizeImage(img)
-
-    # read external file
+        # read external file
     fh = open("parameters.txt", "r")
     parameters = fh.readlines()
     fh.close()
@@ -199,35 +241,27 @@ if __name__ == "__main__":
     cht_min_radius = int(parameters[parameters.index("cht_min_radius")+1])
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
 
-
     # RAW IMAGE
-    # image_enhancement_mode = 0
     windows["raw_image"].addTrackbar("image_enhancement_mode", 0, 3, callback)
     windows["raw_image"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
 
     # IMAGE ENHANCEMENT
-    # power = 60
     windows["power_law"].addTrackbar("power", 0, 100, callback)
     windows["power_law"].setTrackbarPos("power", power)
     
-    # gamma = 100
     windows["gamma_transformation"].addTrackbar("gamma", 0, 250, callback)
     windows["gamma_transformation"].setTrackbarPos("gamma", gamma)
-    # clip_limit = 2
-    # tile_grid_size = 5
+
     windows["clahe"].addTrackbar("clip_limit", 0, 10, callback)
     windows["clahe"].setTrackbarPos("clip_limit", clip_limit)
     windows["clahe"].addTrackbar("tile_grid_size", 0, 10, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
 
     ### BLUR
-    # blur_size = 4
     windows["blur"].addTrackbar("blur_size", 0, 15, callback)
     windows["blur"].setTrackbarPos("blur_size", blur_size)
 
     ### CANNY EDGE DETECTOR
-    # canny_min_val = 34
-    # canny_max_val = 159
     windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
     windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
     windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
@@ -235,11 +269,6 @@ if __name__ == "__main__":
 
     ### CIRCLE HOUGH TRANSFORM
     circles = []
-    # cht_min_dist = 20
-    # cht_param1 = 42
-    # cht_param2 = 14
-    # cht_min_radius = 90
-    # cht_max_radius = 1000
     windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param1", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param2", 0, 100, callback)
@@ -258,11 +287,8 @@ if __name__ == "__main__":
     stacked_image = None
     while (True):
         ret, img = cap.read()
-        # print(ret)
         if ret == True :
             raw_img = img.copy()
-        # print(img.shape)
-        # img = resizeImage(img)
 
         i += 1
         
@@ -283,16 +309,11 @@ if __name__ == "__main__":
             stacked_image = images[0].astype(np.float64)
             if i <= 100 :
                 for i in range(1, i-1) :
-                    # print("DEBUG")
-                    # print(i)
                     stacked_image = stacked_image + images[i]
             else :
                 for i in range(1, 100) :
                     stacked_image = stacked_image + images[i]
-            break
-            # print(img)
-    # stacked_image = resizeImage(stacked_image)
-    
+            break 
     
     while (True) :
         img_back = stacked_image.copy()
@@ -321,8 +342,7 @@ if __name__ == "__main__":
             windows["clahe"].showWindow()
         elif (image_enhancement_mode == MODE_GAMMA_CORRECTION):
             gamma = windows["gamma_transformation"].getTrackbarPos("gamma")
-            gamma = gamma/100
-            enhanced_image = gammaCorrection(enhanced_image, gamma)
+            enhanced_image = gammaCorrection(enhanced_image, gamma/100)
             windows["gamma_transformation"].setImage(enhanced_image)
             windows["gamma_transformation"].showWindow()
             windows["power_law"].setImage(empty_image)
@@ -385,28 +405,4 @@ if __name__ == "__main__":
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
-            
-            # update variable value
-            parameters[parameters.index("cht_max_radius")+1] = str(image_enhancement_mode)
-            parameters[parameters.index("power")+1] = str(power)
-            parameters[parameters.index("gamma")+1] = str(gamma)
-            parameters[parameters.index("clip_limit")+1] = str(clip_limit)
-            parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
-            parameters[parameters.index("blur_size")+1] = str(blur_size)
-            parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
-            parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
-            parameters[parameters.index("canny_max_val")+1] = str(canny_max_val)
-            parameters[parameters.index("cht_min_dist")+1] = str(cht_min_dist)
-            parameters[parameters.index("cht_param1")+1] = str(cht_param1)
-            parameters[parameters.index("cht_param2")+1] = str(cht_param2)
-            parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
-            parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
-
-
-            fw = open("parameters.txt", "w")
-
-            [fw.write(p + "\n") for p in parameters]
-
-            fw.close()
-
             break

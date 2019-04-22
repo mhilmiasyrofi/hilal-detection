@@ -35,4 +35,4 @@ cht_min_radius
 90
 
 cht_max_radius
-200
+144
