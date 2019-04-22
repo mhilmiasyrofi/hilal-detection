@@ -1,5 +1,6 @@
 import cv2
 import numpy as np
+from matplotlib import pyplot as plt
 
 windows_name = ["raw_image", "image_stacking"]
 windows_name = ["raw_image", "image_stacking", "clahe", "power_law", "gamma_transformation",
@@ -159,7 +160,9 @@ if __name__ == "__main__":
     # im_name = "data/hilal1.jpg"
     # im_name = "data/hilal.jpg"
     # Create a VideoCapture object
-    cap = cv2.VideoCapture("data/video.avi")
+    cap = cv2.VideoCapture(
+        "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi")
+    # cap = cv2.VideoCapture("data/video.avi")
     # cap = cv2.VideoCapture("data/F000000.avi")
 
     # Check if camera opened successfully
@@ -174,34 +177,57 @@ if __name__ == "__main__":
     # img = cv2.imread(im_name)
     # img = resizeImage(img)
 
+    # read external file
+    fh = open("parameters.txt", "r")
+    parameters = fh.readlines()
+    fh.close()
+    # remove new line string
+    parameters = [s.replace('\n', '') for s in parameters]
+
+    # get each variables
+    image_enhancement_mode = int(parameters[parameters.index("image_enhancement_mode")+1])
+    power = int(parameters[parameters.index("power")+1])
+    gamma = int(parameters[parameters.index("gamma")+1])
+    clip_limit = int(parameters[parameters.index("clip_limit")+1])
+    tile_grid_size = int(parameters[parameters.index("tile_grid_size")+1])
+    blur_size = int(parameters[parameters.index("blur_size")+1])
+    canny_min_val = int(parameters[parameters.index("canny_min_val")+1])
+    canny_max_val = int(parameters[parameters.index("canny_max_val")+1])
+    cht_min_dist = int(parameters[parameters.index("cht_min_dist")+1])
+    cht_param1 = int(parameters[parameters.index("cht_param1")+1])
+    cht_param2 = int(parameters[parameters.index("cht_param2")+1])
+    cht_min_radius = int(parameters[parameters.index("cht_min_radius")+1])
+    cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
+
+
     # RAW IMAGE
-    image_enhancement_mode = 0
+    # image_enhancement_mode = 0
     windows["raw_image"].addTrackbar("image_enhancement_mode", 0, 3, callback)
     windows["raw_image"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
 
     # IMAGE ENHANCEMENT
-    power = 60
+    # power = 60
     windows["power_law"].addTrackbar("power", 0, 100, callback)
     windows["power_law"].setTrackbarPos("power", power)
     
-    gamma = 100
+    # gamma = 100
     windows["gamma_transformation"].addTrackbar("gamma", 0, 250, callback)
     windows["gamma_transformation"].setTrackbarPos("gamma", gamma)
-    clip_limit = 2
-    tile_grid_size = 5
+    # clip_limit = 2
+    # tile_grid_size = 5
     windows["clahe"].addTrackbar("clip_limit", 0, 10, callback)
     windows["clahe"].setTrackbarPos("clip_limit", clip_limit)
     windows["clahe"].addTrackbar("tile_grid_size", 0, 10, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
 
     ### BLUR
-    blur_size = 4
+    # blur_size = 4
     windows["blur"].addTrackbar("blur_size", 0, 15, callback)
     windows["blur"].setTrackbarPos("blur_size", blur_size)
 
     ### CANNY EDGE DETECTOR
-    canny_min_val = 34
-    canny_max_val = 159
+    # canny_min_val = 34
+    # canny_max_val = 159
     windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
     windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
     windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
@@ -209,11 +235,11 @@ if __name__ == "__main__":
 
     ### CIRCLE HOUGH TRANSFORM
     circles = []
-    cht_min_dist = 20
-    cht_param1 = 42
-    cht_param2 = 14
-    cht_min_radius = 90
-    cht_max_radius = 1000
+    # cht_min_dist = 20
+    # cht_param1 = 42
+    # cht_param2 = 14
+    # cht_min_radius = 90
+    # cht_max_radius = 1000
     windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param1", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param2", 0, 100, callback)
@@ -330,6 +356,7 @@ if __name__ == "__main__":
         windows["blur"].setImage(blur)
         windows["blur"].showWindow()
 
+
         canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
         canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
         edge = cv2.Canny(blur, canny_min_val, canny_max_val)
@@ -358,4 +385,28 @@ if __name__ == "__main__":
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
+            
+            # update variable value
+            parameters[parameters.index("cht_max_radius")+1] = str(image_enhancement_mode)
+            parameters[parameters.index("power")+1] = str(power)
+            parameters[parameters.index("gamma")+1] = str(gamma)
+            parameters[parameters.index("clip_limit")+1] = str(clip_limit)
+            parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
+            parameters[parameters.index("blur_size")+1] = str(blur_size)
+            parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
+            parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
+            parameters[parameters.index("canny_max_val")+1] = str(canny_max_val)
+            parameters[parameters.index("cht_min_dist")+1] = str(cht_min_dist)
+            parameters[parameters.index("cht_param1")+1] = str(cht_param1)
+            parameters[parameters.index("cht_param2")+1] = str(cht_param2)
+            parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
+            parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
+
+
+            fw = open("parameters.txt", "w")
+
+            [fw.write(p + "\n") for p in parameters]
+
+            fw.close()
+
             break
