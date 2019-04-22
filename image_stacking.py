@@ -167,8 +167,8 @@ def fourierTransform(img, magnitude):
     return img
 
 def release_list(l):
-   del l[:]
-   del l
+    del l[:]
+    del l
 
 def darkProcessor(img, dark) :
     img = img - dark
@@ -217,7 +217,9 @@ if __name__ == "__main__":
 
     # Create a VideoCapture object
     # filename = "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi"
-    filename = "data/Video Hilal/Data1/hilal/10_41_25.avi"
+    folder = "Data"
+    specific_name = "video5.avi"
+    filename = "data/Video Hilal/" + folder + "/hilal/" + specific_name
     # filename = "data/video.avi"
     # filename = "data/F000000.avi"
     cap = cv2.VideoCapture(filename)
@@ -310,21 +312,19 @@ if __name__ == "__main__":
             windows["raw_image"].showWindow()
             enhanced_image = img.copy()
 
-            # if i >= 30 :
             images.append(img)
             i += 1
                 
         # Break the loop
-        else:
+        elif i == 0:
+            exit()
+        else :
+            print(len(images))
             stacked_image = images[0].astype(np.float64)
             for i in range(1, i) :
                 stacked_image += images[i]
             break
-            # if i <= 100 :
-            # else :
-            #     for i in range(1, 100) :
-            #         stacked_image += images[i]
-            # break 
+            
     release_list(images)
 
     stacked_image = stacked_image/i
