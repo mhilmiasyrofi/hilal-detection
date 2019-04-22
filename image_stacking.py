@@ -170,6 +170,11 @@ def release_list(l):
    del l[:]
    del l
 
+def darkProcessor(img, dark) :
+    img = img - dark
+    img = img.astype(np.uint8)
+    return img
+
 def flatProcessor(img, flat) :
     img = img/flat
     img *= 255
@@ -198,8 +203,8 @@ def saveConfiguration(filename) :
     fw.close()
 
 def signal_handler(sig, frame):
-        saveConfiguration("parameters.txt")
-        sys.exit(0)
+    saveConfiguration("parameters.txt")
+    sys.exit(0)
 
 if __name__ == "__main__":
 
