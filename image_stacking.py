@@ -216,16 +216,18 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    # filename = "data/Video Hilal/Data2/hilal/hilal 2015-06-17T17_47_03.avi"
-    folder = "Data"
-    specific_name = "video5.avi"
-    filename = "data/Video Hilal/" + folder + "/hilal/" + specific_name
-    # filename = "data/video.avi"
-    # filename = "data/F000000.avi"
+    folder = "data3"
+    specific_name = "video1.avi"
+    filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
 
     flat_image = None
-    # flat_image = cv2.imread("data/Video Hilal/Data1/Flat/flat.jpg")
+    flat_filename = "data/video/" + folder + "/flat/flat.jpg" 
+    flat_image = cv2.imread(flat_filename)
+    
+    dark_image = None
+    dark_filename = "data/video/" + folder + "/dark/dark.jpg" 
+    dark_image = cv2.imread(dark_filename)
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -305,7 +307,9 @@ if __name__ == "__main__":
         ret, img = cap.read()
 
         if ret == True and i <= 100: 
-            if not flat_image == None :
+            if not dark_image is None :
+                img = darkProcessor(img, dark_image)
+            if not flat_image is None :
                 img = flatProcessor(img, flat_image)
             raw_img = img.copy()
             windows["raw_image"].setImage(img)
@@ -364,7 +368,7 @@ if __name__ == "__main__":
         elif (image_enhancement_mode == MODE_CLAHE) :
             clip_limit = windows["clahe"].getTrackbarPos("clip_limit")
             tile_grid_size = windows["clahe"].getTrackbarPos("tile_grid_size")
-            enhanced_image = clahe(img, clip_limit, tile_grid_size)
+            enhanced_image = clahe(enhanced_image, clip_limit, tile_grid_size)
             windows["clahe"].setImage(enhanced_image)
             windows["clahe"].showWindow()
             windows["gamma_transformation"].setImage(empty_image)
