@@ -4,7 +4,7 @@ from matplotlib import pyplot as plt
 import signal
 import sys
 
-windows_name = ["raw_image", "image_stacking","image_enhancement","clahe", "power_law", "gamma_transformation", "fourier",
+windows_name = ["raw_image", "image_stacking","image_enhancement","clahe", "power_law", "fourier",
                 "blur", "canny_edge", "circle_hough_transform"]
 # LHE = Local Histogram equalization
 # removed = ["clahe"]
@@ -12,9 +12,9 @@ windows_name = ["raw_image", "image_stacking","image_enhancement","clahe", "powe
 removed = []
 
 MODE_POWER_LOW = 1
-MODE_GAMMA_CORRECTION = 2
-MODE_CLAHE = 3
-MODE_FOURIER_TRANSFORM = 4
+MODE_CLAHE = 2
+MODE_FOURIER_TRANSFORM = 3
+MODE_GAMMA_CORRECTION = 4
 
 empty_image = np.zeros((1, 1, 3), np.uint8)
 
@@ -22,7 +22,6 @@ empty_image = np.zeros((1, 1, 3), np.uint8)
 parameters = []
 image_enhancement_mode = None
 power = None
-gamma = None
 clip_limit = None
 tile_grid_size = None
 blur_size = None
@@ -119,20 +118,6 @@ def clahe(img, clipLimit=2.0, tileGridSize=8):
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return img
 
-def gammaCorrection(image, gamma=1.0):
-    # build a lookup table mapping the pixel values [0, 255] to
-    # their adjusted gamma values
-
-    if gamma < 0.1 :
-        gamma = 0.1 
-    
-    invGamma = 1.0 / gamma
-    table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
-
-    # apply gamma correction using the lookup table
-    return cv2.LUT(image, table)
-
-
 def fourierTransform(img, magnitude):
     # print(img.shape)
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -187,7 +172,6 @@ def saveConfiguration(filename) :
     parameters[parameters.index("image_enhancement_mode")+1] = str(image_enhancement_mode)
     parameters[parameters.index("constant")+1] = str(constant)
     parameters[parameters.index("power")+1] = str(power)
-    parameters[parameters.index("gamma")+1] = str(gamma)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
     parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
     parameters[parameters.index("magnitude")+1] = str(magnitude)
@@ -252,7 +236,6 @@ if __name__ == "__main__":
     image_enhancement_mode = int(parameters[parameters.index("image_enhancement_mode")+1])
     constant = int(parameters[parameters.index("constant")+1])
     power = int(parameters[parameters.index("power")+1])
-    gamma = int(parameters[parameters.index("gamma")+1])
     clip_limit = int(parameters[parameters.index("clip_limit")+1])
     tile_grid_size = int(parameters[parameters.index("tile_grid_size")+1])
     magnitude = int(parameters[parameters.index("magnitude")+1])
@@ -275,10 +258,7 @@ if __name__ == "__main__":
     windows["power_law"].setTrackbarPos("constant", constant)
     windows["power_law"].addTrackbar("power", 0, 1000, callback)
     windows["power_law"].setTrackbarPos("power", power)
-    
-    windows["gamma_transformation"].addTrackbar("gamma", 0, 250, callback)
-    windows["gamma_transformation"].setTrackbarPos("gamma", gamma)
-
+   
     windows["clahe"].addTrackbar("clip_limit", 0, 10, callback)
     windows["clahe"].setTrackbarPos("clip_limit", clip_limit)
     windows["clahe"].addTrackbar("tile_grid_size", 0, 10, callback)
@@ -372,16 +352,7 @@ if __name__ == "__main__":
             windows["gamma_transformation"].showWindow()
             windows["clahe"].setImage(empty_image)
             windows["clahe"].showWindow()
-        elif (image_enhancement_mode == MODE_GAMMA_CORRECTION):
-            gamma = windows["gamma_transformation"].getTrackbarPos("gamma")
-            enhanced_image = gammaCorrection(enhanced_image, gamma/100)
-            windows["gamma_transformation"].setImage(enhanced_image)
-            windows["gamma_transformation"].showWindow()
-            windows["power_law"].setImage(empty_image)
-            windows["power_law"].showWindow()
-            windows["clahe"].setImage(empty_image)
-            windows["clahe"].showWindow()
-        elif (image_enhancement_mode == MODE_CLAHE) :
+         elif (image_enhancement_mode == MODE_CLAHE) :
             clip_limit = windows["clahe"].getTrackbarPos("clip_limit")
             tile_grid_size = windows["clahe"].getTrackbarPos("tile_grid_size")
             enhanced_image = clahe(enhanced_image, clip_limit, tile_grid_size)

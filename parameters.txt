@@ -7,9 +7,6 @@ constant
 power
 335
 
-gamma
-0
-
 clip_limit
 2
 
