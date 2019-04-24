@@ -4,8 +4,7 @@ from matplotlib import pyplot as plt
 import signal
 import sys
 
-windows_name = ["raw_image", "image_stacking"]
-windows_name = ["raw_image", "image_stacking", "clahe", "power_law", "gamma_transformation", "fourier",
+windows_name = ["raw_image", "image_stacking","image_enhancement","clahe", "power_law", "gamma_transformation", "fourier",
                 "blur", "canny_edge", "circle_hough_transform"]
 # LHE = Local Histogram equalization
 # removed = ["clahe"]
@@ -182,7 +181,7 @@ def flatProcessor(img, flat) :
 
 def saveConfiguration(filename) :
     # update variable value
-    parameters[parameters.index("cht_max_radius")+1] = str(image_enhancement_mode)
+    parameters[parameters.index("image_enhancement_mode")+1] = str(image_enhancement_mode)
     parameters[parameters.index("power")+1] = str(power)
     parameters[parameters.index("gamma")+1] = str(gamma)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
@@ -262,8 +261,9 @@ if __name__ == "__main__":
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
 
     # RAW IMAGE
-    windows["raw_image"].addTrackbar("image_enhancement_mode", 0, 4, callback)
-    windows["raw_image"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
+    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 4, callback)
+    windows["image_enhancement"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
+
 
     # IMAGE ENHANCEMENT
     windows["power_law"].addTrackbar("power", 0, 100, callback)
@@ -327,7 +327,7 @@ if __name__ == "__main__":
         elif i == 0:
             exit()
         else :
-            print(len(images))
+            # print(len(images))
             stacked_image = images[0].astype(np.float64)
             for i in range(1, i) :
                 stacked_image += images[i]
@@ -347,11 +347,14 @@ if __name__ == "__main__":
 
         windows["raw_image"].setImage(raw)
         windows["raw_image"].showWindow()
+        
+        windows["image_enhancement"].setImage(empty_image)
+        windows["image_enhancement"].showWindow()
 
         windows["image_stacking"].setImage(enhanced_image)
         windows["image_stacking"].showWindow()
         
-        image_enhancement_mode = windows["raw_image"].getTrackbarPos("image_enhancement_mode")
+        image_enhancement_mode = windows["image_enhancement"].getTrackbarPos("image_enhancement_mode")
         if (image_enhancement_mode == MODE_POWER_LOW):
             power = windows["power_law"].getTrackbarPos("power")
             enhanced_image = powerLawTransformation(enhanced_image, power)
