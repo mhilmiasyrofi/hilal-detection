@@ -5,7 +5,7 @@ import signal
 import sys
 
 windows_name = ["raw_image", "image_stacking"]
-windows_name = ["raw_image", "image_stacking", "clahe", "power_law", "gamma_transformation",
+windows_name = ["raw_image", "image_stacking", "clahe", "power_law", "gamma_transformation", "fourier",
                 "blur", "canny_edge", "circle_hough_transform"]
 # LHE = Local Histogram equalization
 # removed = ["clahe"]
@@ -125,8 +125,7 @@ def gammaCorrection(image, gamma=1.0):
         gamma = 0.1 
     
     invGamma = 1.0 / gamma
-    table = np.array([((i / 255.0) ** invGamma) *
-                      255 for i in np.arange(0, 256)]).astype("uint8")
+    table = np.array([((i / 255.0) ** invGamma) * 255 for i in np.arange(0, 256)]).astype("uint8")
 
     # apply gamma correction using the lookup table
     return cv2.LUT(image, table)
@@ -188,6 +187,7 @@ def saveConfiguration(filename) :
     parameters[parameters.index("gamma")+1] = str(gamma)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
     parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
+    parameters[parameters.index("magnitude")+1] = str(magnitude)
     parameters[parameters.index("blur_size")+1] = str(blur_size)
     parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
     parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
@@ -216,7 +216,7 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    folder = "data3"
+    folder = "data6"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
@@ -251,6 +251,7 @@ if __name__ == "__main__":
     gamma = int(parameters[parameters.index("gamma")+1])
     clip_limit = int(parameters[parameters.index("clip_limit")+1])
     tile_grid_size = int(parameters[parameters.index("tile_grid_size")+1])
+    magnitude = int(parameters[parameters.index("magnitude")+1])
     blur_size = int(parameters[parameters.index("blur_size")+1])
     canny_min_val = int(parameters[parameters.index("canny_min_val")+1])
     canny_max_val = int(parameters[parameters.index("canny_max_val")+1])
@@ -261,7 +262,7 @@ if __name__ == "__main__":
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
 
     # RAW IMAGE
-    windows["raw_image"].addTrackbar("image_enhancement_mode", 0, 3, callback)
+    windows["raw_image"].addTrackbar("image_enhancement_mode", 0, 4, callback)
     windows["raw_image"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
 
     # IMAGE ENHANCEMENT
@@ -275,6 +276,9 @@ if __name__ == "__main__":
     windows["clahe"].setTrackbarPos("clip_limit", clip_limit)
     windows["clahe"].addTrackbar("tile_grid_size", 0, 10, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
+
+    windows["fourier"].addTrackbar("magnitude", 0, 10, callback)
+    windows["fourier"].setTrackbarPos("magnitude", magnitude)
 
     ### BLUR
     windows["blur"].addTrackbar("blur_size", 0, 15, callback)
@@ -291,7 +295,7 @@ if __name__ == "__main__":
     windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param1", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_param2", 0, 100, callback)
-    windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 1000, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 100, callback)
     windows["circle_hough_transform"].addTrackbar("cht_max_radius", 0, 1000, callback)
     windows["circle_hough_transform"].setTrackbarPos("cht_min_dist", cht_min_dist)
     windows["circle_hough_transform"].setTrackbarPos("cht_param1", cht_param1)
@@ -336,7 +340,8 @@ if __name__ == "__main__":
     
     while (True) :
         img = stacked_image.copy()
-        enhanced_image = resizeImage(img)
+        img = resizeImage(img)
+        enhanced_image = img
         raw = raw_img.copy()
         raw = resizeImage(raw)
 
@@ -376,7 +381,7 @@ if __name__ == "__main__":
             windows["power_law"].setImage(empty_image)
             windows["power_law"].showWindow()
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM):
-            magnitude = windows["power_law"].getTrackbarPos("power")
+            magnitude = windows["fourier"].getTrackbarPos("magnitude")
             enhanced_image = fourierTransform(enhanced_image, magnitude)
         else :
             windows["gamma_transformation"].setImage(empty_image)
