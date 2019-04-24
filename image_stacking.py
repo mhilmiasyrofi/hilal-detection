@@ -100,10 +100,14 @@ def convertFloat64ImgtoUint8(img):
     return img
 
 
-def powerLawTransformation(img, power=60):
+def powerLawTransformation(img, constant=10, power=100):
     power_law = img/255
     power_law = cv2.pow(power_law, power/100)
     power_law = convertFloat64ImgtoUint8(power_law)
+    power_law = power_law * float(constant/10)
+    power_law = power_law.astype(np.uint8)
+    np.where(power_law > 255, 255, power_law)
+    np.where(power_law < 0, 0, power_law)
     return power_law
 
 def clahe(img, clipLimit=2.0, tileGridSize=8):
@@ -114,7 +118,6 @@ def clahe(img, clipLimit=2.0, tileGridSize=8):
     img = clahe.apply(img)
     img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     return img
-
 
 def gammaCorrection(image, gamma=1.0):
     # build a lookup table mapping the pixel values [0, 255] to
@@ -182,6 +185,7 @@ def flatProcessor(img, flat) :
 def saveConfiguration(filename) :
     # update variable value
     parameters[parameters.index("image_enhancement_mode")+1] = str(image_enhancement_mode)
+    parameters[parameters.index("constant")+1] = str(constant)
     parameters[parameters.index("power")+1] = str(power)
     parameters[parameters.index("gamma")+1] = str(gamma)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
@@ -215,7 +219,7 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    folder = "data6"
+    folder = "data3"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
@@ -246,6 +250,7 @@ if __name__ == "__main__":
 
     # get each variables
     image_enhancement_mode = int(parameters[parameters.index("image_enhancement_mode")+1])
+    constant = int(parameters[parameters.index("constant")+1])
     power = int(parameters[parameters.index("power")+1])
     gamma = int(parameters[parameters.index("gamma")+1])
     clip_limit = int(parameters[parameters.index("clip_limit")+1])
@@ -266,7 +271,9 @@ if __name__ == "__main__":
 
 
     # IMAGE ENHANCEMENT
-    windows["power_law"].addTrackbar("power", 0, 100, callback)
+    windows["power_law"].addTrackbar("constant", 0, 20, callback)
+    windows["power_law"].setTrackbarPos("constant", constant)
+    windows["power_law"].addTrackbar("power", 0, 1000, callback)
     windows["power_law"].setTrackbarPos("power", power)
     
     windows["gamma_transformation"].addTrackbar("gamma", 0, 250, callback)
@@ -356,8 +363,9 @@ if __name__ == "__main__":
         
         image_enhancement_mode = windows["image_enhancement"].getTrackbarPos("image_enhancement_mode")
         if (image_enhancement_mode == MODE_POWER_LOW):
+            constant = windows["power_law"].getTrackbarPos("constant")
             power = windows["power_law"].getTrackbarPos("power")
-            enhanced_image = powerLawTransformation(enhanced_image, power)
+            enhanced_image = powerLawTransformation(enhanced_image, constant, power)
             windows["power_law"].setImage(enhanced_image)
             windows["power_law"].showWindow()
             windows["gamma_transformation"].setImage(empty_image)
