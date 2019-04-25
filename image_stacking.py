@@ -6,10 +6,10 @@ import sys
 
 from matplotlib import pyplot as plt
 
-windows_name = ["raw_image", "image_stacking","image_enhancement","clahe", "power_law", "fourier",
+windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
                 "blur", "canny_edge", "circle_hough_transform"]
 
-removed = ["raw_image", "image_stacking", "blur", "canny_edge", "circle_hough_transform"]
+removed = ["raw_image", "blur", "canny_edge", "circle_hough_transform"]
 
 for r in removed:
     windows_name.remove(r)
@@ -23,6 +23,8 @@ empty_image = np.zeros((1, 1, 3), np.uint8)
 
 # Variable initiation
 parameters = []
+min_stack = None
+max_stack = None
 image_enhancement_mode = None
 power = None
 clip_limit = None
@@ -35,7 +37,6 @@ cht_param1 = None
 cht_param2 = None
 cht_min_radius = None
 cht_max_radius = None
-
 
 
 def callback(x):
@@ -65,7 +66,7 @@ class Window:
 
     def showWindow(self):
         cv2.imshow(self.name, self.image)
-    
+
     def deleteWindow(self):
         cv2.destroyWindow(self.name)
 
@@ -111,9 +112,10 @@ def powerLawTransformation(img, constant=10, power=100):
     power_law = power_law.astype(np.uint8)
     return power_law
 
+
 def clahe(img, clipLimit=2.0, tileGridSize=8):
     img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    if (tileGridSize == 0) :
+    if (tileGridSize == 0):
         tileGridSize = 1
     clahe = cv2.createCLAHE(clipLimit, (tileGridSize, tileGridSize))
     img = clahe.apply(img)
@@ -122,6 +124,7 @@ def clahe(img, clipLimit=2.0, tileGridSize=8):
     img = np.where(img < 0, 0, img)
     img = img.astype(np.uint8)
     return img
+
 
 def fourierTransform(img):
     # print(img.shape)
@@ -156,26 +159,46 @@ def fourierTransform(img):
     # print(img)
     # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     # print(img.shape)
-    
+
     return img
+
 
 def release_list(l):
     del l[:]
     del l
 
-def darkProcessor(img, dark) :
+
+def darkProcessor(img, dark):
     img = img - dark
     img = img.astype(np.uint8)
     return img
 
-def flatProcessor(img, flat) :
+
+def flatProcessor(img, flat):
     img = img/flat
     img *= 255
     img = img.astype(np.uint8)
     return img
 
+
+def showHistogram(window_name, image):
+    h = np.zeros((300, 256, 3))
+    bins = np.arange(256).reshape(256, 1)
+    color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
+    for ch, col in enumerate(color):
+        hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
+        cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
+        hist = np.int32(np.around(hist_item))
+        pts = np.column_stack((bins, hist))
+        cv2.polylines(h, [pts], False, col)
+    h = np.flipud(h)
+    cv2.imshow(window_name, h)
+
+
 def saveConfiguration(filename) :
     # update variable value
+    parameters[parameters.index("min_stack")+1] = str(min_stack)
+    parameters[parameters.index("max_stack")+1] = str(max_stack)
     parameters[parameters.index("image_enhancement_mode")+1] = str(image_enhancement_mode)
     parameters[parameters.index("constant")+1] = str(constant)
     parameters[parameters.index("power")+1] = str(power)
@@ -209,7 +232,7 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    folder = "data2"
+    folder = "data1"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
@@ -239,6 +262,8 @@ if __name__ == "__main__":
     parameters = [s.replace('\n', '') for s in parameters]
 
     # get each variables
+    min_stack = int(parameters[parameters.index("min_stack")+1])
+    max_stack = int(parameters[parameters.index("max_stack")+1])
     image_enhancement_mode = int(parameters[parameters.index("image_enhancement_mode")+1])
     constant = int(parameters[parameters.index("constant")+1])
     power = int(parameters[parameters.index("power")+1])
@@ -254,9 +279,14 @@ if __name__ == "__main__":
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
 
     # RAW IMAGE
-    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 4, callback)
+    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 3, callback)
     windows["image_enhancement"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
-
+    
+    # STACKED IMAGE
+    windows["image_stacking"].addTrackbar("min_stack", 0, 255, callback)
+    windows["image_stacking"].setTrackbarPos("min_stack", min_stack)
+    windows["image_stacking"].addTrackbar("max_stack", 0, 255, callback)
+    windows["image_stacking"].setTrackbarPos("max_stack", max_stack)
 
     # IMAGE ENHANCEMENT
     windows["power_law"].addTrackbar("constant", 0, 20, callback)
@@ -329,9 +359,7 @@ if __name__ == "__main__":
     
     while (True) :
         img = stacked_image.copy()
-        
-        img = resizeImage(img)
-        enhanced_image = img
+        enhanced_image = resizeImage(img)
         raw = raw_img.copy()
         raw = resizeImage(raw)
 
@@ -341,8 +369,18 @@ if __name__ == "__main__":
         windows["image_enhancement"].setImage(empty_image)
         windows["image_enhancement"].showWindow()
 
-        # windows["image_stacking"].setImage(enhanced_image)
-        # windows["image_stacking"].showWindow()
+        min_stack = windows["image_stacking"].getTrackbarPos("min_stack")
+        max_stack = windows["image_stacking"].getTrackbarPos("max_stack")
+        
+        if min_stack >= max_stack :
+            min_stack = max_stack - 1
+            windows["image_stacking"].setTrackbarPos("min_stack", min_stack)
+
+        enhanced_image = np.where(enhanced_image > max_stack, 255, enhanced_image)
+        enhanced_image = np.where(enhanced_image < min_stack, 0, enhanced_image)
+
+        windows["image_stacking"].setImage(enhanced_image)
+        windows["image_stacking"].showWindow()
         
         image_enhancement_mode = windows["image_enhancement"].getTrackbarPos("image_enhancement_mode")
         if (image_enhancement_mode == MODE_POWER_LOW):
@@ -380,6 +418,8 @@ if __name__ == "__main__":
             windows["clahe"].showWindow()
             windows["fourier"].setImage(empty_image)
             windows["fourier"].showWindow()
+        
+        showHistogram("Histogram", enhanced_image)
 
         # blur_size = windows["blur"].getTrackbarPos("blur_size")
         # blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
