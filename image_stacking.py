@@ -9,7 +9,7 @@ from matplotlib import pyplot as plt
 windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
                 "blur", "canny_edge", "circle_hough_transform"]
 
-removed = ["raw_image", "blur", "canny_edge", "circle_hough_transform"]
+removed = []
 
 for r in removed:
     windows_name.remove(r)
@@ -33,8 +33,6 @@ blur_size = None
 canny_min_val = None
 canny_max_val = None
 cht_min_dist = None
-cht_param1 = None
-cht_param2 = None
 cht_min_radius = None
 cht_max_radius = None
 
@@ -157,7 +155,7 @@ def fourierTransform(img):
     # print(img.shape)
     # print("img")
     # print(img)
-    # img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
     # print(img.shape)
 
     return img
@@ -209,8 +207,6 @@ def saveConfiguration(filename) :
     parameters[parameters.index("canny_min_val")+1] = str(canny_min_val)
     parameters[parameters.index("canny_max_val")+1] = str(canny_max_val)
     parameters[parameters.index("cht_min_dist")+1] = str(cht_min_dist)
-    parameters[parameters.index("cht_param1")+1] = str(cht_param1)
-    parameters[parameters.index("cht_param2")+1] = str(cht_param2)
     parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
     parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
 
@@ -241,9 +237,11 @@ if __name__ == "__main__":
     flat_filename = "data/video/" + folder + "/flat/flat.jpg" 
     flat_image = cv2.imread(flat_filename)
     
+    
     dark_image = None
     dark_filename = "data/video/" + folder + "/dark/dark.jpg" 
     dark_image = cv2.imread(dark_filename)
+    
 
     # Check if camera opened successfully
     if (cap.isOpened() == False):
@@ -273,22 +271,21 @@ if __name__ == "__main__":
     canny_min_val = int(parameters[parameters.index("canny_min_val")+1])
     canny_max_val = int(parameters[parameters.index("canny_max_val")+1])
     cht_min_dist = int(parameters[parameters.index("cht_min_dist")+1])
-    cht_param1 = int(parameters[parameters.index("cht_param1")+1])
-    cht_param2 = int(parameters[parameters.index("cht_param2")+1])
     cht_min_radius = int(parameters[parameters.index("cht_min_radius")+1])
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
 
-    # RAW IMAGE
-    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 3, callback)
-    windows["image_enhancement"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
-    
-    # STACKED IMAGE
+    ### STACKED IMAGE
     windows["image_stacking"].addTrackbar("min_stack", 0, 255, callback)
     windows["image_stacking"].setTrackbarPos("min_stack", min_stack)
     windows["image_stacking"].addTrackbar("max_stack", 0, 255, callback)
     windows["image_stacking"].setTrackbarPos("max_stack", max_stack)
 
-    # IMAGE ENHANCEMENT
+    ### IMAGE ENHANCEMENT
+    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 3, callback)
+    windows["image_enhancement"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
+    
+
+    ### IMAGE ENHANCEMENT
     windows["power_law"].addTrackbar("constant", 0, 20, callback)
     windows["power_law"].setTrackbarPos("constant", constant)
     windows["power_law"].addTrackbar("power", 0, 500, callback)
@@ -299,28 +296,24 @@ if __name__ == "__main__":
     windows["clahe"].addTrackbar("tile_grid_size", 0, 100, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
 
-    # ### BLUR
-    # windows["blur"].addTrackbar("blur_size", 0, 15, callback)
-    # windows["blur"].setTrackbarPos("blur_size", blur_size)
+    ### BLUR
+    windows["blur"].addTrackbar("blur_size", 0, 15, callback)
+    windows["blur"].setTrackbarPos("blur_size", blur_size)
 
-    # ### CANNY EDGE DETECTOR
-    # windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
-    # windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
-    # windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
-    # windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
+    ### CANNY EDGE DETECTOR
+    windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
+    windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
+    windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
+    windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
 
-    # ### CIRCLE HOUGH TRANSFORM
-    # circles = []
-    # windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
-    # windows["circle_hough_transform"].addTrackbar("cht_param1", 0, 100, callback)
-    # windows["circle_hough_transform"].addTrackbar("cht_param2", 0, 100, callback)
-    # windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 100, callback)
-    # windows["circle_hough_transform"].addTrackbar("cht_max_radius", 0, 1000, callback)
-    # windows["circle_hough_transform"].setTrackbarPos("cht_min_dist", cht_min_dist)
-    # windows["circle_hough_transform"].setTrackbarPos("cht_param1", cht_param1)
-    # windows["circle_hough_transform"].setTrackbarPos("cht_param2", cht_param2)
-    # windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_radius)
-    # windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
+    ### CIRCLE HOUGH TRANSFORM
+    circles = []
+    windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 300, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_max_radius", 0, 400, callback)
+    windows["circle_hough_transform"].setTrackbarPos("cht_min_dist", cht_min_dist)
+    windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_radius)
+    windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
     
     i = 0
     images = []
@@ -331,7 +324,10 @@ if __name__ == "__main__":
 
         if ret == True and i <= 100: 
             if not dark_image is None :
+                # uncalibrated = resizeImage(img.copy())
                 img = darkProcessor(img, dark_image)
+                # cv2.imshow("uncalibrated", uncalibrated)
+                # cv2.imshow("dark", resizeImage(dark_image))
             if not flat_image is None :
                 img = flatProcessor(img, flat_image)
             raw_img = img.copy()
@@ -363,8 +359,8 @@ if __name__ == "__main__":
         raw = raw_img.copy()
         raw = resizeImage(raw)
 
-        # windows["raw_image"].setImage(raw)
-        # windows["raw_image"].showWindow()
+        windows["raw_image"].setImage(raw)
+        windows["raw_image"].showWindow()
         
         windows["image_enhancement"].setImage(empty_image)
         windows["image_enhancement"].showWindow()
@@ -418,40 +414,41 @@ if __name__ == "__main__":
             windows["clahe"].showWindow()
             windows["fourier"].setImage(empty_image)
             windows["fourier"].showWindow()
-        
-        showHistogram("Histogram", enhanced_image)
+    
 
-        # blur_size = windows["blur"].getTrackbarPos("blur_size")
-        # blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
-        # windows["blur"].setImage(blur)
-        # windows["blur"].showWindow()
+        blur_size = windows["blur"].getTrackbarPos("blur_size")
+        blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
+        windows["blur"].setImage(blur)
+        windows["blur"].showWindow()
 
-        # canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
-        # canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
-        # edge = cv2.Canny(blur, canny_min_val, canny_max_val)
-        # windows["canny_edge"].setImage(edge)
-        # windows["canny_edge"].showWindow()
+        showHistogram("Histogram", blur)
 
-        # cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
-        # cht_param1 = windows["circle_hough_transform"].getTrackbarPos("cht_param1")
-        # cht_param2 = windows["circle_hough_transform"].getTrackbarPos("cht_param2")
-        # cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
-        # cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
+        canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
+        canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+        edge = cv2.Canny(blur, canny_min_val, canny_max_val)
+        windows["canny_edge"].setImage(edge)
+        windows["canny_edge"].showWindow()
 
-        # circle_img = enhanced_image.copy()
-        # circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, cht_min_dist, param1=cht_param1, param2=cht_param2, minRadius=cht_min_radius, maxRadius=cht_max_radius)
+        cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
+        cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
+        cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
+        if cht_min_dist > cht_max_radius :
+            cht_min_radius = cht_max_radius
 
-        # if not circles is python interfaceNone:
-        #     circles = np.uint16(np.around(circles))
-        #     for i in circles[0,:] :
-        #         # draw the outer circle
-        #         cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
-        #         # draw the center of the circle
-        #         cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
+        circle_img = enhanced_image.copy()
+        circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, minDist=cht_min_dist, param2=10 ,minRadius=cht_min_radius, maxRadius=cht_max_radius)
 
-        # windows["circle_hough_transform"].setImage(circle_img)
-        # windows["circle_hough_transform"].showWindow()
+        if not circles is None:
+            circles = np.uint16(np.around(circles))
+            for i in circles[0,:] :
+                # draw the outer circle
+                cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
+                # draw the center of the circle
+                cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
+
+        windows["circle_hough_transform"].setImage(circle_img)
+        windows["circle_hough_transform"].showWindow()
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
-            break
+            breako
