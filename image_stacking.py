@@ -434,6 +434,8 @@ if __name__ == "__main__":
         cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
         if cht_min_dist > cht_max_radius :
             cht_min_radius = cht_max_radius
+        windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_dist)
+        
 
         circle_img = enhanced_image.copy()
         circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, minDist=cht_min_dist, param2=10 ,minRadius=cht_min_radius, maxRadius=cht_max_radius)
