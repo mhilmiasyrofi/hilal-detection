@@ -7,7 +7,7 @@ import sys
 from matplotlib import pyplot as plt
 
 windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
-                "blur", "canny_edge", "circle_hough_transform"]
+                "histogram", "blur", "canny_edge", "circle_hough_transform"]
 
 removed = []
 
@@ -76,6 +76,9 @@ class Window:
 
     def setTrackbarPos(self, trackbarName, value):
         cv2.setTrackbarPos(trackbarName, self.name, value)
+
+    def moveWindow(self, x, y) :
+        cv2.moveWindow(self.name, x, y)
 
     def __del__(self):
         print("Window " + self.name + " is destroyed")
@@ -179,7 +182,7 @@ def flatProcessor(img, flat):
     return img
 
 
-def showHistogram(window_name, image):
+def buildHistogramFromImage(image):
     h = np.zeros((300, 256, 3))
     bins = np.arange(256).reshape(256, 1)
     color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
@@ -190,7 +193,7 @@ def showHistogram(window_name, image):
         pts = np.column_stack((bins, hist))
         cv2.polylines(h, [pts], False, col)
     h = np.flipud(h)
-    cv2.imshow(window_name, h)
+    return h
 
 
 def saveConfiguration(filename) :
@@ -228,7 +231,7 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    folder = "data1"
+    folder = "data3"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
@@ -308,7 +311,7 @@ if __name__ == "__main__":
 
     ### CIRCLE HOUGH TRANSFORM
     circles = []
-    windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 100, callback)
+    windows["circle_hough_transform"].addTrackbar("cht_min_dist", 0, 300, callback)
     windows["circle_hough_transform"].addTrackbar("cht_min_radius", 0, 300, callback)
     windows["circle_hough_transform"].addTrackbar("cht_max_radius", 0, 400, callback)
     windows["circle_hough_transform"].setTrackbarPos("cht_min_dist", cht_min_dist)
@@ -421,7 +424,9 @@ if __name__ == "__main__":
         windows["blur"].setImage(blur)
         windows["blur"].showWindow()
 
-        showHistogram("Histogram", blur)
+        histogram = buildHistogramFromImage(blur)
+        windows["histogram"].setImage(histogram)
+        windows["histogram"].showWindow()
 
         canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
         canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
@@ -434,7 +439,7 @@ if __name__ == "__main__":
         cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
         if cht_min_dist > cht_max_radius :
             cht_min_radius = cht_max_radius
-        windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_dist)
+            windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_dist)
         
 
         circle_img = enhanced_image.copy()
@@ -450,6 +455,32 @@ if __name__ == "__main__":
 
         windows["circle_hough_transform"].setImage(circle_img)
         windows["circle_hough_transform"].showWindow()
+
+        # windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
+        #     "blur", "canny_edge", "circle_hough_transform"]
+
+        windows["raw_image"].moveWindow(50, 100)
+        windows["image_stacking"].moveWindow(475, 100)
+        windows["image_enhancement"].moveWindow(900, 100)
+        if (image_enhancement_mode == MODE_POWER_LOW):
+            windows["fourier"].moveWindow(1325, 100)
+            windows["clahe"].moveWindow(1325, 100)
+            windows["power_law"].moveWindow(1325, 100)
+        elif (image_enhancement_mode == MODE_CLAHE) :
+            windows["clahe"].moveWindow(1325, 100)
+            windows["power_law"].moveWindow(1325, 100)
+            windows["fourier"].moveWindow(1325, 100)
+        elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
+            windows["fourier"].moveWindow(1325, 100)
+            windows["power_law"].moveWindow(1325, 100)
+            windows["clahe"].moveWindow(1325, 100)
+        
+
+        windows["histogram"].moveWindow(50, 550)
+        windows["blur"].moveWindow(475, 550)
+        windows["canny_edge"].moveWindow(900, 550)
+        windows["circle_hough_transform"].moveWindow(1325, 550)
+
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
