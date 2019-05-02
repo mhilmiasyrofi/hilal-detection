@@ -1,18 +1,13 @@
 import cv2
 import numpy as np
 
-def convertFloat64ImgtoUint8(img):
-    # Get the information of the incoming image type
-    # normalize the img to 0 - 1
-    img = img.astype(np.float64) / float(img.max())
-    img = 255 * img  # Now scale by 255
-    img = img.astype(np.uint8)
-    return img
-
 if __name__ == "__main__":
 
     # Create a VideoCapture object
-    filename = "data/Video Hilal/Data1/Flat/10_39_12.avi"
+    # filename = "data/Video Hilal/Data1/Flat/10_39_12.avi"
+    folder = "data3"
+    specific_name = "video2.avi"
+    filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
 
     # Check if camera opened successfully
@@ -23,7 +18,7 @@ if __name__ == "__main__":
     # We convert the resolutions from float to integer.
     frame_width = int(cap.get(3))
     frame_height = int(cap.get(4))
-  
+
     i = 0
 
     sum_images = None
@@ -58,5 +53,5 @@ if __name__ == "__main__":
 
     normalized = sum_images/i
     normalized_image = normalized.astype(np.uint8)
-    
-    # cv2.imwrite('frame.jpg', normalized_image)
+
+    cv2.imwrite('flat.jpg', normalized_image)
