@@ -10,6 +10,8 @@ import cv2
 import numpy as np
 import threading
 
+import signal
+
 
 __author__ = 'Steve Marple'
 __version__ = '0.0.22'
@@ -18,11 +20,8 @@ __license__ = 'MIT'
 global ExpTime
 global CamGain
 global tframe
-global tresh
 ExpTime = 100
 CamGain = 50
-tframe = np.zeros((480, 640, 3))
-tresh = np.zeros((480, 640, 1))
 
 def saveControlValues(filename, settings):
     filename += '.txt'
@@ -128,21 +127,18 @@ if 'Gain' in controls and controls['Gain']['IsAutoSupported']:
 camera.set_control_value(
     controls['AutoExpMaxExpMS']['ControlType'], controls['AutoExpMaxExpMS']['MaxValue'])
 
+
 class getFrame(threading.Thread):
     def __init__(self):
+        self.lock = threading.Lock()
         threading.Thread.__init__(self)
         self.stopThread = False
 
     def run(self):
         while True:
-            global tframe
-            global ExpTime
-            camera.set_control_value(asi.ASI_EXPOSURE, ExpTime)
-            camera.set_control_value(asi.ASI_GAIN, CamGain)
             tframe = camera.capture_video_frame()
             if self.stopThread == True:
-                break
-
+                break   
     def stopThread(self, stopThread):
         self.stopThread = stopThread
 
@@ -157,8 +153,10 @@ except (KeyboardInterrupt, SystemExit):
 except:
     pass
 
+camera.set_image_type(asi.ASI_IMG_RAW8)
+camera.set_roi(width=320, height=240)
 ### warm up camera
-time.sleep(1)
+time.sleep(3)
 i = 0
 while (i <= 5) :
     tframe  = camera.capture()
@@ -176,14 +174,16 @@ except:
 print('Enabling video mode')
 camera.start_video_capture()
 
-
-### thread to capture camera
-t1 = getFrame()
-t1.start()
+cv2.namedWindow("frame", cv2.WINDOW_NORMAL)
 
 try :
     while True:
-        frame = gray(tframe)
-        cv2.imshow("frame", tframe)
+        tframe = camera.capture_video_frame()
+        rgb = cv2.cvtColor(tframe, cv2.COLOR_GRAY2RGB)
+        cv2.imshow("frame", rgb)
+        k = cv2.waitKey(20) & 0xFF
+        if k == 27:
+            break
 except (KeyboardInterrupt, SystemExit) :
+    camera.close()
     cv2.destroyAllWindows()
