@@ -12,30 +12,11 @@ import threading
 
 import signal
 
-
-__author__ = 'Steve Marple'
-__version__ = '0.0.22'
-__license__ = 'MIT'
-
 global ExpTime
 global CamGain
 global tframe
 ExpTime = 100
 CamGain = 50
-
-def saveControlValues(filename, settings):
-    filename += '.txt'
-    with open(filename, 'w') as f:
-        for k in sorted(settings.keys()):
-            f.write('%s: %s\n' % (k, str(settings[k])))
-    print('Camera settings saved to %s' % filename)
-
-def gray(im):
-    im = 255 * (im/im.max())
-    w, h = im.shape
-    ret = np.empty((w, h, 3), dtype=np.uint8)
-    ret[:, :, 2] = ret[:, :, 1] = ret[:, :, 0] = im
-    return ret
 
 env_filename = os.getenv('ZWO_ASI_LIB')
 
@@ -77,13 +58,13 @@ camera = asi.Camera(camera_id)
 camera_info = camera.get_camera_property()
 
 # Get all of the camera controls
-print('')
-print('Camera controls:')
+# print('')
+# print('Camera controls:')
 controls = camera.get_controls()
-for cn in sorted(controls.keys()):
-    print('    %s:' % cn)
-    for k in sorted(controls[cn].keys()):
-        print('        %s: %s' % (k, repr(controls[cn][k])))
+# for cn in sorted(controls.keys()):
+#     print('    %s:' % cn)
+#     for k in sorted(controls[cn].keys()):
+#         print('        %s: %s' % (k, repr(controls[cn][k])))
 
 
 # Use minimum USB bandwidth permitted
@@ -126,22 +107,6 @@ if 'Gain' in controls and controls['Gain']['IsAutoSupported']:
 # Keep max gain to the default but allow exposure to be increased to its maximum value if necessary
 camera.set_control_value(
     controls['AutoExpMaxExpMS']['ControlType'], controls['AutoExpMaxExpMS']['MaxValue'])
-
-
-class getFrame(threading.Thread):
-    def __init__(self):
-        self.lock = threading.Lock()
-        threading.Thread.__init__(self)
-        self.stopThread = False
-
-    def run(self):
-        while True:
-            tframe = camera.capture_video_frame()
-            if self.stopThread == True:
-                break   
-    def stopThread(self, stopThread):
-        self.stopThread = stopThread
-
 
 print('Enabling stills mode')
 try:
