@@ -1,12 +1,11 @@
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 import signal
 import sys
 
 from matplotlib import pyplot as plt
 
-windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
+windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "histogram_equalization", "power_law", "fourier",
                 "histogram", "blur", "canny_edge", "circle_hough_transform"]
 
 removed = []
@@ -16,8 +15,8 @@ for r in removed:
 
 MODE_POWER_LOW = 1
 MODE_CLAHE = 2
-MODE_FOURIER_TRANSFORM = 3
-MODE_GAMMA_CORRECTION = 4
+MODE_HISTOGRAM_EQUALIZATION = 3
+MODE_FOURIER_TRANSFORM = 4
 
 empty_image = np.zeros((1, 1, 3), np.uint8)
 
@@ -231,7 +230,7 @@ if __name__ == "__main__":
         windows[w] = Window(w)
 
     # Create a VideoCapture object
-    folder = "data3"
+    folder = "data6"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
@@ -355,6 +354,7 @@ if __name__ == "__main__":
 
     stacked_image = stacked_image/i
     stacked_image = stacked_image.astype(np.uint8)
+
     
     while (True) :
         img = stacked_image.copy()
@@ -382,41 +382,34 @@ if __name__ == "__main__":
         windows["image_stacking"].showWindow()
         
         image_enhancement_mode = windows["image_enhancement"].getTrackbarPos("image_enhancement_mode")
+        windows["power_law"].setImage(empty_image)
+        windows["power_law"].showWindow()
+        windows["clahe"].setImage(empty_image)
+        windows["clahe"].showWindow()
+        windows["fourier"].setImage(empty_image)
+        windows["fourier"].showWindow()
+        windows["histogram_equalization"].setImage(empty_image)
+        windows["histogram_equalization"].showWindow()
         if (image_enhancement_mode == MODE_POWER_LOW):
             constant = windows["power_law"].getTrackbarPos("constant")
             power = windows["power_law"].getTrackbarPos("power")
             enhanced_image = powerLawTransformation(enhanced_image, constant, power)
             windows["power_law"].setImage(enhanced_image)
             windows["power_law"].showWindow()
-            windows["clahe"].setImage(empty_image)
-            windows["clahe"].showWindow()
-            windows["fourier"].setImage(empty_image)
-            windows["fourier"].showWindow()
         elif (image_enhancement_mode == MODE_CLAHE) :
             clip_limit = windows["clahe"].getTrackbarPos("clip_limit")
             tile_grid_size = windows["clahe"].getTrackbarPos("tile_grid_size")
             enhanced_image = clahe(enhanced_image, clip_limit, tile_grid_size)
             windows["clahe"].setImage(enhanced_image)
             windows["clahe"].showWindow()
-            windows["power_law"].setImage(empty_image)
-            windows["power_law"].showWindow()
-            windows["fourier"].setImage(empty_image)
-            windows["fourier"].showWindow()
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
             enhanced_image = fourierTransform(enhanced_image)
             windows["fourier"].setImage(enhanced_image)
             windows["fourier"].showWindow()
-            windows["clahe"].setImage(empty_image)
-            windows["clahe"].showWindow()
-            windows["power_law"].setImage(empty_image)
+        elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
+            enhanced_image = cv2.equalizeHist(enhanced_image)
+            windows["power_law"].setImage(enhanced_image)
             windows["power_law"].showWindow()
-        else :
-            windows["power_law"].setImage(empty_image)
-            windows["power_law"].showWindow()
-            windows["clahe"].setImage(empty_image)
-            windows["clahe"].showWindow()
-            windows["fourier"].setImage(empty_image)
-            windows["fourier"].showWindow()
     
 
         blur_size = windows["blur"].getTrackbarPos("blur_size")
@@ -484,4 +477,4 @@ if __name__ == "__main__":
 
         k = cv2.waitKey(1) & 0xFF
         if k == 27:
-            breako
+            break
