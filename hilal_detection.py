@@ -289,11 +289,19 @@ def flatProcessor(img, flat):
     img = img.astype(np.uint8)
     return img
 
+def isGrayImage(img):
+    return len(img.shape) < 3
 
 def buildHistogramFromImage(image):
-    h = np.zeros((300, 256, 3))
+    h = None
+    color = None
+    if isGrayImage(image) :
+        h = np.zeros((300, 256))
+        color = [(255, 0, 0)]
+    else :
+        h = np.zeros((300, 256, 3))
+        color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     bins = np.arange(256).reshape(256, 1)
-    color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
     for ch, col in enumerate(color):
         hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
         cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
@@ -302,20 +310,6 @@ def buildHistogramFromImage(image):
         cv2.polylines(h, [pts], False, col)
     h = np.flipud(h)
     return h
-
-def buildHistogramFromGrayImage(image):
-    h = np.zeros((300, 256))
-    bins = np.arange(256).reshape(256, 1)
-    color = [(255, 0, 0)]
-    for ch, col in enumerate(color):
-        hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
-        cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
-        hist = np.int32(np.around(hist_item))
-        pts = np.column_stack((bins, hist))
-        cv2.polylines(h, [pts], False, col)
-    h = np.flipud(h)
-    return h
-
 
 def saveConfiguration(filename):
     # update variable value
@@ -339,8 +333,6 @@ def saveConfiguration(filename):
     [fw.write(p + "\n") for p in parameters]
     fw.close()
 
-def isGrayImage(img) :
-    return len(img.shape) < 3
 
 def signal_handler(sig, frame):
     saveConfiguration("parameters.txt")
@@ -502,7 +494,8 @@ if __name__ == "__main__":
             # cv2.imshow("raw", tframe)
 
             raw = tframe
-            enhanced_image = raw.copy()
+            # enhanced_image = raw.copy()
+            enhanced_image = mean_image.copy()
 
             windows["raw_image"].setImage(raw)
             windows["raw_image"].showWindow()
@@ -564,11 +557,8 @@ if __name__ == "__main__":
                 enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
             windows["blur"].setImage(blur)
             windows["blur"].showWindow()
-
-            if isGrayImage(blur) :
-                histogram = buildHistogramFromGrayImage(blur)
-            else :
-                histogram = buildHistogramFromImage(blur)
+            
+            histogram = buildHistogramFromImage(blur)
             windows["histogram"].setImage(histogram)
             windows["histogram"].showWindow()
 
