@@ -114,7 +114,7 @@ def initCamera(cam_width=320, cam_height=240):
     return camera, camera_name
 
 
-windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
+windows_name = ["raw_image", "image_stacking", "image_enhancement", "power_law", "clahe", "histogram_equalization", "fourier",
                 "histogram", "blur", "canny_edge", "circle_hough_transform"]
 
 removed = []
@@ -124,8 +124,8 @@ for r in removed:
 
 MODE_POWER_LOW = 1
 MODE_CLAHE = 2
-MODE_FOURIER_TRANSFORM = 3
-MODE_GAMMA_CORRECTION = 4
+MODE_HISTOGRAM_EQUALIZATION = 3
+MODE_FOURIER_TRANSFORM = 4
 
 empty_image = np.zeros((1, 1, 3), np.uint8)
 
@@ -223,7 +223,7 @@ def powerLawTransformation(img, constant=10, power=100):
 
 
 def clahe(img, clipLimit=2.0, tileGridSize=8):
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     if (tileGridSize == 0):
         tileGridSize = 1
     clahe = cv2.createCLAHE(clipLimit, (tileGridSize, tileGridSize))
@@ -237,7 +237,7 @@ def clahe(img, clipLimit=2.0, tileGridSize=8):
 
 def fourierTransform(img):
     # print(img.shape)
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     # print(img.shape)
     dft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
     dft_shift = np.fft.fftshift(dft)
@@ -372,7 +372,7 @@ if __name__ == "__main__":
 
     ### IMAGE ENHANCEMENT
     windows["image_enhancement"].addTrackbar(
-        "image_enhancement_mode", 0, 3, callback)
+        "image_enhancement_mode", 0, 4, callback)
     windows["image_enhancement"].setTrackbarPos(
         "image_enhancement_mode", image_enhancement_mode)
 
@@ -483,8 +483,80 @@ if __name__ == "__main__":
             # print("sum_images")
             # print(sum_images)
 
-            cv2.imshow("stack", mean_image)
-            cv2.imshow("raw", tframe)
+            # cv2.imshow("stack", mean_image)
+            # cv2.imshow("raw", tframe)
+
+            raw = tframe
+            enhanced_image = raw.copy()
+
+            windows["raw_image"].setImage(raw)
+            windows["raw_image"].showWindow()
+
+            windows["image_enhancement"].setImage(empty_image)
+            windows["image_enhancement"].showWindow()
+
+            min_stack = windows["image_stacking"].getTrackbarPos("min_stack")
+            max_stack = windows["image_stacking"].getTrackbarPos("max_stack")
+
+            if min_stack >= max_stack:
+                min_stack = max_stack - 1
+                windows["image_stacking"].setTrackbarPos("min_stack", min_stack)
+
+            enhanced_image = np.where(
+                enhanced_image > max_stack, 255, enhanced_image)
+            enhanced_image = np.where(
+                enhanced_image < min_stack, 0, enhanced_image)
+
+            windows["image_stacking"].setImage(enhanced_image)
+            windows["image_stacking"].showWindow()
+
+            image_enhancement_mode = windows["image_enhancement"].getTrackbarPos(
+                "image_enhancement_mode")
+            windows["power_law"].setImage(empty_image)
+            windows["power_law"].showWindow()
+            windows["clahe"].setImage(empty_image)
+            windows["clahe"].showWindow()
+            windows["fourier"].setImage(empty_image)
+            windows["fourier"].showWindow()
+            windows["histogram_equalization"].setImage(empty_image)
+            windows["histogram_equalization"].showWindow()
+            if (image_enhancement_mode == MODE_POWER_LOW):
+                constant = windows["power_law"].getTrackbarPos("constant")
+                power = windows["power_law"].getTrackbarPos("power")
+                enhanced_image = powerLawTransformation(
+                    enhanced_image, constant, power)
+                windows["power_law"].setImage(enhanced_image)
+                windows["power_law"].showWindow()
+            elif (image_enhancement_mode == MODE_CLAHE):
+                clip_limit = windows["clahe"].getTrackbarPos("clip_limit")
+                tile_grid_size = windows["clahe"].getTrackbarPos("tile_grid_size")
+                enhanced_image = clahe(enhanced_image, clip_limit, tile_grid_size)
+                windows["clahe"].setImage(enhanced_image)
+                windows["clahe"].showWindow()
+            elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
+                # enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2GRAY)
+                enhanced_image = cv2.equalizeHist(enhanced_image)
+                windows["power_law"].setImage(enhanced_image)
+                windows["power_law"].showWindow()
+                enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_GRAY2BGR)
+            elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM):
+                enhanced_image = fourierTransform(enhanced_image)
+                windows["fourier"].setImage(enhanced_image)
+                windows["fourier"].showWindow()
+
+            windows["raw_image"].moveWindow(50, 100)
+            windows["image_stacking"].moveWindow(475, 100)
+            windows["image_enhancement"].moveWindow(900, 100)
+            windows["power_law"].moveWindow(1325, 100)
+            windows["clahe"].moveWindow(1325, 100)
+            windows["histogram_equalization"].moveWindow(1325, 100)
+            windows["fourier"].moveWindow(1325, 100)
+
+            windows["histogram"].moveWindow(50, 550)
+            windows["blur"].moveWindow(475, 550)
+            windows["canny_edge"].moveWindow(900, 550)
+            windows["circle_hough_transform"].moveWindow(1325, 550)
+
             k = cv2.waitKey(20) & 0xFF
             if k == ord('q'):
                 break
