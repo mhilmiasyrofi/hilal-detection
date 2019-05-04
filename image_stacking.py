@@ -283,7 +283,7 @@ if __name__ == "__main__":
     windows["image_stacking"].setTrackbarPos("max_stack", max_stack)
 
     ### IMAGE ENHANCEMENT
-    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 3, callback)
+    windows["image_enhancement"].addTrackbar("image_enhancement_mode", 0, 4, callback)
     windows["image_enhancement"].setTrackbarPos("image_enhancement_mode", image_enhancement_mode)
     
 
@@ -402,14 +402,16 @@ if __name__ == "__main__":
             enhanced_image = clahe(enhanced_image, clip_limit, tile_grid_size)
             windows["clahe"].setImage(enhanced_image)
             windows["clahe"].showWindow()
+        elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
+            enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2GRAY)
+            enhanced_image = cv2.equalizeHist(enhanced_image)
+            windows["power_law"].setImage(enhanced_image)
+            windows["power_law"].showWindow()
+            enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_GRAY2BGR)
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
             enhanced_image = fourierTransform(enhanced_image)
             windows["fourier"].setImage(enhanced_image)
             windows["fourier"].showWindow()
-        elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
-            enhanced_image = cv2.equalizeHist(enhanced_image)
-            windows["power_law"].setImage(enhanced_image)
-            windows["power_law"].showWindow()
     
 
         blur_size = windows["blur"].getTrackbarPos("blur_size")
