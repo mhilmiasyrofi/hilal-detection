@@ -303,6 +303,19 @@ def buildHistogramFromImage(image):
     h = np.flipud(h)
     return h
 
+def buildHistogramFromGrayImage(image):
+    h = np.zeros((300, 256))
+    bins = np.arange(256).reshape(256, 1)
+    color = [(255, 0, 0)]
+    for ch, col in enumerate(color):
+        hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
+        cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
+        hist = np.int32(np.around(hist_item))
+        pts = np.column_stack((bins, hist))
+        cv2.polylines(h, [pts], False, col)
+    h = np.flipud(h)
+    return h
+
 
 def saveConfiguration(filename):
     # update variable value
@@ -326,6 +339,8 @@ def saveConfiguration(filename):
     [fw.write(p + "\n") for p in parameters]
     fw.close()
 
+def isGrayImage(img) :
+    return len(img.shape) < 3
 
 def signal_handler(sig, frame):
     saveConfiguration("parameters.txt")
@@ -544,6 +559,52 @@ if __name__ == "__main__":
                 windows["fourier"].setImage(enhanced_image)
                 windows["fourier"].showWindow()
 
+            blur_size = windows["blur"].getTrackbarPos("blur_size")
+            blur = cv2.GaussianBlur(
+                enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
+            windows["blur"].setImage(blur)
+            windows["blur"].showWindow()
+
+            if isGrayImage(blur) :
+                histogram = buildHistogramFromGrayImage(blur)
+            else :
+                histogram = buildHistogramFromImage(blur)
+            windows["histogram"].setImage(histogram)
+            windows["histogram"].showWindow()
+
+            canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
+            canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+            edge = cv2.Canny(blur, canny_min_val, canny_max_val)
+            windows["canny_edge"].setImage(edge)
+            windows["canny_edge"].showWindow()
+
+            # cht_min_dist = windows["circle_hough_transform"].getTrackbarPos(
+            #     "cht_min_dist")
+            # cht_min_radius = windows["circle_hough_transform"].getTrackbarPos(
+            #     "cht_min_radius")
+            # cht_max_radius = windows["circle_hough_transform"].getTrackbarPos(
+            #     "cht_max_radius")
+            # if cht_min_dist > cht_max_radius:
+            #     cht_min_radius = cht_max_radius
+            #     windows["circle_hough_transform"].setTrackbarPos(
+            #         "cht_min_radius", cht_min_dist)
+
+            # circle_img = enhanced_image.copy()
+            # circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, minDist=cht_min_dist,
+            #                         param2=10, minRadius=cht_min_radius, maxRadius=cht_max_radius)
+
+            # if not circles is None:
+            #     circles = np.uint16(np.around(circles))
+            #     for i in circles[0, :]:
+            #         # draw the outer circle
+            #         cv2.circle(circle_img, (i[0], i[1]), i[2], (0, 255, 0), 2)
+            #         # draw the center of the circle
+            #         cv2.circle(circle_img, (i[0], i[1]), 2, (0, 0, 255), 3)
+
+            # windows["circle_hough_transform"].setImage(circle_img)
+            # windows["circle_hough_transform"].showWindow()
+
+
             windows["raw_image"].moveWindow(50, 100)
             windows["image_stacking"].moveWindow(475, 100)
             windows["image_enhancement"].moveWindow(900, 100)
@@ -563,5 +624,4 @@ if __name__ == "__main__":
     except (KeyboardInterrupt, SystemExit):
         camera.close()
         out.release()
-    out.release()
     
