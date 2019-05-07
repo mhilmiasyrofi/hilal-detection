@@ -1,12 +1,8 @@
 #!/usr/bin/env python
+from utils import *
+from window import Window
 
-from matplotlib import pyplot as plt
 import signal
-import argparse
-import os
-import sys
-import time
-import zwoasi as asi
 
 import cv2
 import numpy as np
@@ -17,107 +13,17 @@ currentDT = datetime.datetime.now()
 current_time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
 
 global tframe
-frame_width = 320
-frame_height = 240
-# frame_width = 1280
-# frame_height = 960
-
-def initCamera(cam_width=320, cam_height=240):
-
-    env_filename = os.getenv('ZWO_ASI_LIB')
-
-    parser = argparse.ArgumentParser(
-        description='Crescent moon detector')
-    parser.add_argument('filename',
-                        nargs='?',
-                        help='SDK library filename')
-    args = parser.parse_args()
-
-    # Initialize zwoasi with the name of the SDK library
-    if args.filename:
-        asi.init(args.filename)
-    elif env_filename:
-        asi.init(env_filename)
-    else:
-        print('The filename of the SDK library is required (or set ZWO_ASI_LIB environment variable with the filename)')
-        sys.exit(1)
-
-    num_cameras = asi.get_num_cameras()
-    if num_cameras == 0:
-        print('No cameras found')
-        sys.exit(0)
-
-    cameras_found = asi.list_cameras()  # Models names of the connected cameras
-
-    if num_cameras == 1:
-        camera_id = 0
-        camera_name = cameras_found[0]
-        print('Found one camera: %s' % cameras_found[0])
-    else:
-        print('Found %d cameras' % num_cameras)
-        for n in range(num_cameras):
-            print('    %d: %s' % (n, cameras_found[n]))
-        # TO DO: allow user to select a camera
-        camera_id = 0
-        print('Using #%d: %s' % (camera_id, cameras_found[camera_id]))
-
-    camera = asi.Camera(camera_id)
-    camera_info = camera.get_camera_property()
-
-    # Get all of the camera controls
-    controls = camera.get_controls()
-
-    # Use minimum USB bandwidth permitted
-    camera.set_control_value(asi.ASI_BANDWIDTHOVERLOAD,
-                            camera.get_controls()['BandWidth']['MinValue'])
-
-    # Set some sensible defaults. They will need adjusting depending upon
-    # the sensitivity, lens and lighting conditions used.
-    camera.disable_dark_subtract()
-
-    camera.set_control_value(asi.ASI_GAIN, 150)
-    camera.set_control_value(asi.ASI_EXPOSURE, 100)
-    camera.set_control_value(asi.ASI_WB_B, 99)
-    camera.set_control_value(asi.ASI_WB_R, 75)
-    camera.set_control_value(asi.ASI_GAMMA, 50)
-    camera.set_control_value(asi.ASI_BRIGHTNESS, 50)
-    camera.set_control_value(asi.ASI_FLIP, 0)
-
-    # Restore all controls to default values except USB bandwidth
-    for c in controls:
-        if controls[c]['ControlType'] == asi.ASI_BANDWIDTHOVERLOAD:
-            continue
-        camera.set_control_value(
-            controls[c]['ControlType'], controls[c]['DefaultValue'])
-
-    # Can autoexposure be used?
-    k = 'Exposure'
-    if 'Exposure' in controls and controls['Exposure']['IsAutoSupported']:
-        print('Enabling auto-exposure mode')
-        camera.set_control_value(asi.ASI_EXPOSURE,
-                                controls['Exposure']['DefaultValue'],
-                                auto=True)
-
-    if 'Gain' in controls and controls['Gain']['IsAutoSupported']:
-        print('Enabling automatic gain setting')
-        camera.set_control_value(asi.ASI_GAIN,
-                                controls['Gain']['DefaultValue'],
-                                auto=True)
-
-    # Keep max gain to the default but allow exposure to be increased to its maximum value if necessary
-    camera.set_control_value(
-        controls['AutoExpMaxExpMS']['ControlType'], controls['AutoExpMaxExpMS']['MaxValue'])
-
-    camera.set_image_type(asi.ASI_IMG_RAW8)
-    camera.set_roi(width=cam_width, height=cam_height)
-
-    return camera, camera_name
-
+# frame_width = 320
+# frame_height = 240
+# frame_width = 3096
+# frame_height = 2080
+frame_width = 1024
+frame_height = 768
 
 windows_name = ["raw_image", "image_stacking", "image_enhancement", "power_law", "clahe", "histogram_equalization", "fourier",
                 "histogram", "blur", "canny_edge", "circle_hough_transform"]
 
-removed = []
+removed = ["blur", "canny_edge", "circle_hough_transform"]
 
 for r in removed:
     windows_name.remove(r)
@@ -145,173 +51,7 @@ cht_min_radius = None
 cht_max_radius = None
 
 
-def callback(x):
-    pass
-
-
-class Window:
-    name = "Named Window"
-    image = np.zeros((300, 512, 3), np.uint8)
-    image[:] = [0, 0, 0]
-
-    def __init__(self, name):
-        self.name = name
-        cv2.namedWindow(name)
-
-    def setName(self, name):
-        self.name = name
-
-    def getName(self):
-        return self.name
-
-    def setImage(self, img):
-        self.image = img
-
-    def getImage(self):
-        return self.image
-
-    def showWindow(self):
-        cv2.imshow(self.name, self.image)
-
-    def deleteWindow(self):
-        cv2.destroyWindow(self.name)
-
-    def addTrackbar(self, trackbarName, min, max, callback):
-        cv2.createTrackbar(trackbarName, self.name, min, max, callback)
-
-    def getTrackbarPos(self, trackbarName):
-        return cv2.getTrackbarPos(trackbarName, self.name)
-
-    def setTrackbarPos(self, trackbarName, value):
-        cv2.setTrackbarPos(trackbarName, self.name, value)
-
-    def moveWindow(self, x, y):
-        cv2.moveWindow(self.name, x, y)
-
-    def __del__(self):
-        print("Window " + self.name + " is destroyed")
-        cv2.destroyWindow(self.name)
-
-
-def resizeImage(img):
-    if img.shape[0] > 300:
-        h = img.shape[0] * 300 / img.shape[0]
-        w = img.shape[1] * 300 / img.shape[0]
-        img = cv2.resize(img, (int(w), int(h)))
-    return img
-
-
-def convertFloat64ImgtoUint8(img):
-    # Get the information of the incoming image type
-    # normalize the img to 0 - 1
-    img = img.astype(np.float64) / float(img.max())
-    img = 255 * img  # Now scale by 255
-    img = img.astype(np.uint8)
-    return img
-
-
-def powerLawTransformation(img, constant=10, power=100):
-    power_law = img.astype(np.float64)
-    power_law = power_law/255
-    power_law = cv2.pow(power_law, power/100)
-    power_law = convertFloat64ImgtoUint8(power_law)
-    power_law = power_law * float(constant/10)
-    power_law = np.where(power_law > 254, 254, power_law)
-    power_law = np.where(power_law < 0, 0, power_law)
-    power_law = power_law.astype(np.uint8)
-    return power_law
-
-
-def clahe(img, clipLimit=2.0, tileGridSize=8):
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    if (tileGridSize == 0):
-        tileGridSize = 1
-    clahe = cv2.createCLAHE(clipLimit, (tileGridSize, tileGridSize))
-    img = clahe.apply(img)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    img = np.where(img > 254, 254, img)
-    img = np.where(img < 0, 0, img)
-    img = img.astype(np.uint8)
-    return img
-
-
-def fourierTransform(img):
-    # print(img.shape)
-    # img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-    # print(img.shape)
-    dft = cv2.dft(np.float32(img), flags=cv2.DFT_COMPLEX_OUTPUT)
-    dft_shift = np.fft.fftshift(dft)
-    magnitude_spectrum = 20 * \
-        np.log(cv2.magnitude(dft_shift[:, :, 0], dft_shift[:, :, 1]))
-
-    rows, cols = img.shape
-    crow, ccol = int(rows/2), int(cols/2)
-
-    # create a mask first, center square is 1, remaining all zeros
-    mask = np.zeros((rows, cols, 2), np.uint8)
-    mask[crow-30:crow+30, ccol-30:ccol+30] = 1
-
-    # apply mask and inverse DFT
-    fshift = dft_shift*mask
-    f_ishift = np.fft.ifftshift(fshift)
-    img_back = cv2.idft(f_ishift)
-    img_back = cv2.magnitude(img_back[:, :, 0], img_back[:, :, 1])
-
-    # Convert back again
-    # normalize the data to 0 - 1
-    img_back = img_back.astype(np.float32) / img_back.max()
-    img_back = 255 * img_back  # Now scale by 255
-    img = img_back.astype(np.uint8)
-
-    # print(img.shape)
-    # print("img")
-    # print(img)
-    img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
-    # print(img.shape)
-
-    return img
-
-
-def release_list(l):
-    del l[:]
-    del l
-
-
-def darkProcessor(img, dark):
-    img = img - dark
-    img = img.astype(np.uint8)
-    return img
-
-
-def flatProcessor(img, flat):
-    img = img/flat
-    img *= 255
-    img = img.astype(np.uint8)
-    return img
-
-def isGrayImage(img):
-    return len(img.shape) < 3
-
-def buildHistogramFromImage(image):
-    h = None
-    color = None
-    if isGrayImage(image) :
-        h = np.zeros((300, 256))
-        color = [(255, 0, 0)]
-    else :
-        h = np.zeros((300, 256, 3))
-        color = [(255, 0, 0), (0, 255, 0), (0, 0, 255)]
-    bins = np.arange(256).reshape(256, 1)
-    for ch, col in enumerate(color):
-        hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
-        cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
-        hist = np.int32(np.around(hist_item))
-        pts = np.column_stack((bins, hist))
-        cv2.polylines(h, [pts], False, col)
-    h = np.flipud(h)
-    return h
-
-def saveConfiguration(filename):
+def saveConfiguration(filename, ):
     # update variable value
     parameters[parameters.index("min_stack")+1] = str(min_stack)
     parameters[parameters.index("max_stack")+1] = str(max_stack)
@@ -338,10 +78,19 @@ def signal_handler(sig, frame):
     saveConfiguration("parameters.txt")
     sys.exit(0)
 
-
 if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, signal_handler)
+
+    folder = "subang"
+
+    flat_image = None
+    flat_filename = "data/video/" + folder + "/flat.jpg"
+    flat_image = cv2.imread(flat_filename)
+
+    dark_image = None
+    dark_filename = "data/video/" + folder + "/dark.jpg"
+    dark_image = cv2.imread(dark_filename)
 
     # read external file
     fh = open("parameters.txt", "r")
@@ -394,30 +143,30 @@ if __name__ == "__main__":
     windows["clahe"].addTrackbar("tile_grid_size", 0, 100, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
 
-    ### BLUR
-    windows["blur"].addTrackbar("blur_size", 0, 15, callback)
-    windows["blur"].setTrackbarPos("blur_size", blur_size)
+    # ### BLUR
+    # windows["blur"].addTrackbar("blur_size", 0, 15, callback)
+    # windows["blur"].setTrackbarPos("blur_size", blur_size)
 
-    ### CANNY EDGE DETECTOR
-    windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
-    windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
-    windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
-    windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
+    # ### CANNY EDGE DETECTOR
+    # windows["canny_edge"].addTrackbar("canny_min_val", 0, 255, callback)
+    # windows["canny_edge"].addTrackbar("canny_max_val", 0, 255, callback)
+    # windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
+    # windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
 
-    ### CIRCLE HOUGH TRANSFORM
-    circles = []
-    windows["circle_hough_transform"].addTrackbar(
-        "cht_min_dist", 0, 300, callback)
-    windows["circle_hough_transform"].addTrackbar(
-        "cht_min_radius", 0, 300, callback)
-    windows["circle_hough_transform"].addTrackbar(
-        "cht_max_radius", 0, 400, callback)
-    windows["circle_hough_transform"].setTrackbarPos(
-        "cht_min_dist", cht_min_dist)
-    windows["circle_hough_transform"].setTrackbarPos(
-        "cht_min_radius", cht_min_radius)
-    windows["circle_hough_transform"].setTrackbarPos(
-        "cht_max_radius", cht_max_radius)
+    # ### CIRCLE HOUGH TRANSFORM
+    # circles = []
+    # windows["circle_hough_transform"].addTrackbar(
+    #     "cht_min_dist", 0, 300, callback)
+    # windows["circle_hough_transform"].addTrackbar(
+    #     "cht_min_radius", 0, 300, callback)
+    # windows["circle_hough_transform"].addTrackbar(
+    #     "cht_max_radius", 0, 400, callback)
+    # windows["circle_hough_transform"].setTrackbarPos(
+    #     "cht_min_dist", cht_min_dist)
+    # windows["circle_hough_transform"].setTrackbarPos(
+    #     "cht_min_radius", cht_min_radius)
+    # windows["circle_hough_transform"].setTrackbarPos(
+    #     "cht_max_radius", cht_max_radius)
 
     camera, camera_name = initCamera(frame_width, frame_height)
 
@@ -451,6 +200,7 @@ if __name__ == "__main__":
 
     ### init video writer to save video
     fourcc = cv2.VideoWriter_fourcc(*'DIVX')
+    # fourcc = cv2.VideoWriter_fourcc(*'MJPG')
     out = cv2.VideoWriter(FILE_OUTPUT, fourcc, 20, (frame_width, frame_height))
 
     ### init zwo asi camera
@@ -465,6 +215,10 @@ if __name__ == "__main__":
         i = 0
         while True:
             tframe = camera.capture_video_frame()
+            if not dark_image is None:
+                tframe = darkProcessor(tframe, dark_image)
+            if not flat_image is None :
+                tframe = flatProcessor(tframe, flat_image)
             rgb = cv2.cvtColor(tframe, cv2.COLOR_GRAY2RGB)
             out.write(rgb)
             images.append(tframe)
@@ -552,21 +306,25 @@ if __name__ == "__main__":
                 windows["fourier"].setImage(enhanced_image)
                 windows["fourier"].showWindow()
 
-            blur_size = windows["blur"].getTrackbarPos("blur_size")
-            blur = cv2.GaussianBlur(
-                enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
-            windows["blur"].setImage(blur)
-            windows["blur"].showWindow()
-            
-            histogram = buildHistogramFromImage(blur)
+            histogram = buildHistogramFromImage(enhanced_image)
             windows["histogram"].setImage(histogram)
             windows["histogram"].showWindow()
 
-            canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
-            canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
-            edge = cv2.Canny(blur, canny_min_val, canny_max_val)
-            windows["canny_edge"].setImage(edge)
-            windows["canny_edge"].showWindow()
+            # blur_size = windows["blur"].getTrackbarPos("blur_size")
+            # blur = cv2.GaussianBlur(
+            #     enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
+            # windows["blur"].setImage(blur)
+            # windows["blur"].showWindow()
+            
+            # histogram = buildHistogramFromImage(blur)
+            # windows["histogram"].setImage(histogram)
+            # windows["histogram"].showWindow()
+
+            # canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
+            # canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+            # edge = cv2.Canny(blur, canny_min_val, canny_max_val)
+            # windows["canny_edge"].setImage(edge)
+            # windows["canny_edge"].showWindow()
 
             # cht_min_dist = windows["circle_hough_transform"].getTrackbarPos(
             #     "cht_min_dist")
@@ -595,18 +353,18 @@ if __name__ == "__main__":
             # windows["circle_hough_transform"].showWindow()
 
 
-            windows["raw_image"].moveWindow(50, 100)
-            windows["image_stacking"].moveWindow(475, 100)
-            windows["image_enhancement"].moveWindow(900, 100)
-            windows["power_law"].moveWindow(1325, 100)
-            windows["clahe"].moveWindow(1325, 100)
-            windows["histogram_equalization"].moveWindow(1325, 100)
-            windows["fourier"].moveWindow(1325, 100)
+            # windows["raw_image"].moveWindow(50, 100)
+            # windows["image_stacking"].moveWindow(475, 100)
+            # windows["image_enhancement"].moveWindow(900, 100)
+            # windows["power_law"].moveWindow(1325, 100)
+            # windows["clahe"].moveWindow(1325, 100)
+            # windows["histogram_equalization"].moveWindow(1325, 100)
+            # windows["fourier"].moveWindow(1325, 100)
 
-            windows["histogram"].moveWindow(50, 550)
-            windows["blur"].moveWindow(475, 550)
-            windows["canny_edge"].moveWindow(900, 550)
-            windows["circle_hough_transform"].moveWindow(1325, 550)
+            # windows["histogram"].moveWindow(50, 550)
+            # windows["blur"].moveWindow(475, 550)
+            # windows["canny_edge"].moveWindow(900, 550)
+            # windows["circle_hough_transform"].moveWindow(1325, 550)
 
             k = cv2.waitKey(20) & 0xFF
             if k == ord('q'):
