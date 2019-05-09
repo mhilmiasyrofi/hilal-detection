@@ -5,9 +5,10 @@ if __name__ == "__main__":
 
     # Create a VideoCapture object
     # filename = "data/Video Hilal/Data1/Flat/10_39_12.avi"
-    folder = "data3"
-    specific_name = "video2.avi"
-    filename = "data/video/" + folder + "/hilal/" + specific_name
+    folder = "data1"
+    specific_name = "flat"
+    filename = "data/video/" + folder + "/" + specific_name + ".avi"
+    # filename = "data/" + specific_name
     cap = cv2.VideoCapture(filename)
 
     # Check if camera opened successfully
@@ -54,4 +55,5 @@ if __name__ == "__main__":
     normalized = sum_images/i
     normalized_image = normalized.astype(np.uint8)
 
-    cv2.imwrite('flat.jpg', normalized_image)
+    image_name = "data/video/" + folder + "/" + specific_name + ".jpg"
+    cv2.imwrite(image_name, normalized_image)
