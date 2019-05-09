@@ -28,6 +28,12 @@ def convertFloat64ImgtoUint8(img):
     img = img.astype(np.uint8)
     return img
 
+def equalizeHistogram(image) :
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    image = cv2.equalizeHist(image)
+    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    return image
+
 
 def powerLawTransformation(img, constant=10, power=100):
     power_law = img.astype(np.float64)
@@ -219,3 +225,11 @@ def initCamera(cam_width=320, cam_height=240):
     camera.set_roi(width=cam_width, height=cam_height)
 
     return camera, camera_name
+
+# ### calculate radius of the moon in pixel
+# # focal length of telescope
+# # camera field of view
+# # camera resolution
+# def calculateMoonRadius(focal_length, camera_fow, camera_resolution) :
+#     plate_scale = 206265 / focal_length # second per mili
+#     plate_scale /= 60 # minute per mili
