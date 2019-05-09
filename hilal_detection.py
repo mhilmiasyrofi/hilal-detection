@@ -254,9 +254,6 @@ if __name__ == "__main__":
             windows["raw_image"].setImage(raw)
             windows["raw_image"].showWindow()
 
-            windows["image_enhancement"].setImage(empty_image)
-            windows["image_enhancement"].showWindow()
-
             min_stack = windows["image_stacking"].getTrackbarPos("min_stack")
             max_stack = windows["image_stacking"].getTrackbarPos("max_stack")
 
@@ -271,6 +268,9 @@ if __name__ == "__main__":
 
             windows["image_stacking"].setImage(enhanced_image)
             windows["image_stacking"].showWindow()
+
+            windows["image_enhancement"].setImage(empty_image)
+            windows["image_enhancement"].showWindow()
 
             image_enhancement_mode = windows["image_enhancement"].getTrackbarPos(
                 "image_enhancement_mode")

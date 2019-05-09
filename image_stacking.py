@@ -142,17 +142,17 @@ if __name__ == "__main__":
     windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
     
     # Create a VideoCapture object
-    folder = "data6"
+    folder = "data1"
     specific_name = "video1.avi"
     filename = "data/video/" + folder + "/hilal/" + specific_name
     cap = cv2.VideoCapture(filename)
 
     flat_image = None
-    flat_filename = "data/video/" + folder + "/flat/flat.jpg"
+    flat_filename = "data/video/" + folder + "/flat.jpg"
     flat_image = cv2.imread(flat_filename)
 
     dark_image = None
-    dark_filename = "data/video/" + folder + "/dark/dark.jpg"
+    dark_filename = "data/video/" + folder + "/dark.jpg"
     dark_image = cv2.imread(dark_filename)
 
     # Check if camera opened successfully
@@ -198,6 +198,8 @@ if __name__ == "__main__":
     stacked_image = stacked_image/i
     stacked_image = stacked_image.astype(np.uint8)
 
+    min_intensity = getMostFrequentIntensity(stacked_image) - 3
+    windows["image_stacking"].setTrackbarPos("min_stack", min_intensity)
     
     while (True) :
         img = stacked_image.copy()
@@ -207,9 +209,6 @@ if __name__ == "__main__":
 
         windows["raw_image"].setImage(raw)
         windows["raw_image"].showWindow()
-        
-        windows["image_enhancement"].setImage(empty_image)
-        windows["image_enhancement"].showWindow()
 
         min_stack = windows["image_stacking"].getTrackbarPos("min_stack")
         max_stack = windows["image_stacking"].getTrackbarPos("max_stack")
@@ -223,6 +222,9 @@ if __name__ == "__main__":
 
         windows["image_stacking"].setImage(enhanced_image)
         windows["image_stacking"].showWindow()
+
+        windows["image_enhancement"].setImage(empty_image)
+        windows["image_enhancement"].showWindow()
         
         image_enhancement_mode = windows["image_enhancement"].getTrackbarPos("image_enhancement_mode")
         windows["power_law"].setImage(empty_image)
@@ -264,36 +266,33 @@ if __name__ == "__main__":
         windows["histogram"].setImage(histogram)
         windows["histogram"].showWindow()
 
-        canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
-        canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
-        edge = cv2.Canny(blur, canny_min_val, canny_max_val)
-        windows["canny_edge"].setImage(edge)
-        windows["canny_edge"].showWindow()
+        # canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
+        # canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+        # edge = cv2.Canny(blur, canny_min_val, canny_max_val)
+        # windows["canny_edge"].setImage(edge)
+        # windows["canny_edge"].showWindow()
 
-        cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
-        cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
-        cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
-        if cht_min_dist > cht_max_radius :
-            cht_min_radius = cht_max_radius
-            windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_dist)
+        # cht_min_dist = windows["circle_hough_transform"].getTrackbarPos("cht_min_dist")
+        # cht_min_radius = windows["circle_hough_transform"].getTrackbarPos("cht_min_radius")
+        # cht_max_radius = windows["circle_hough_transform"].getTrackbarPos("cht_max_radius")
+        # if cht_min_dist > cht_max_radius :
+        #     cht_min_radius = cht_max_radius
+        #     windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_dist)
         
 
-        circle_img = enhanced_image.copy()
-        circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, minDist=cht_min_dist, param2=10 ,minRadius=cht_min_radius, maxRadius=cht_max_radius)
+        # circle_img = enhanced_image.copy()
+        # circles = cv2.HoughCircles(edge, cv2.HOUGH_GRADIENT, 1, minDist=cht_min_dist, param2=10 ,minRadius=cht_min_radius, maxRadius=cht_max_radius)
 
-        if not circles is None:
-            circles = np.uint16(np.around(circles))
-            for i in circles[0,:] :
-                # draw the outer circle
-                cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
-                # draw the center of the circle
-                cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
+        # if not circles is None:
+        #     circles = np.uint16(np.around(circles))
+        #     for i in circles[0,:] :
+        #         # draw the outer circle
+        #         cv2.circle(circle_img,(i[0],i[1]),i[2],(0,255,0),2)
+        #         # draw the center of the circle
+        #         cv2.circle(circle_img,(i[0],i[1]),2,(0,0,255),3)
 
-        windows["circle_hough_transform"].setImage(circle_img)
-        windows["circle_hough_transform"].showWindow()
-
-        # windows_name = ["raw_image", "image_stacking", "image_enhancement", "clahe", "power_law", "fourier",
-        #     "blur", "canny_edge", "circle_hough_transform"]
+        # windows["circle_hough_transform"].setImage(circle_img)
+        # windows["circle_hough_transform"].showWindow()
 
         windows["raw_image"].moveWindow(50, 100)
         windows["image_stacking"].moveWindow(475, 100)
