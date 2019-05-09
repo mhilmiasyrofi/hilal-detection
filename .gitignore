@@ -43,3 +43,4 @@ package-lock.json
 # ignore big video files
 /data/
 /video/
+parameters.txt
