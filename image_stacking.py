@@ -25,6 +25,7 @@ MODE_FOURIER_TRANSFORM = 4
 empty_image = np.zeros((1, 1, 3), np.uint8)
 
 # Variable initiation
+configuration_filename = "parameters.txt"
 parameters = []
 min_stack = None
 max_stack = None
@@ -39,11 +40,12 @@ cht_min_dist = None
 cht_min_radius = None
 cht_max_radius = None
 
-def saveConfiguration(filename) :
+def saveConfiguration():
     # update variable value
     parameters[parameters.index("min_stack")+1] = str(min_stack)
     parameters[parameters.index("max_stack")+1] = str(max_stack)
-    parameters[parameters.index("image_enhancement_mode")+1] = str(image_enhancement_mode)
+    parameters[parameters.index(
+        "image_enhancement_mode")+1] = str(image_enhancement_mode)
     parameters[parameters.index("constant")+1] = str(constant)
     parameters[parameters.index("power")+1] = str(power)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
@@ -56,50 +58,21 @@ def saveConfiguration(filename) :
     parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
     parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
 
-    fw = open(filename, "w")
+    fw = open(configuration_filename, "w")
     [fw.write(p + "\n") for p in parameters]
     fw.close()
 
+
 def signal_handler(sig, frame):
-    saveConfiguration("parameters.txt")
+    saveConfiguration()
     sys.exit(0)
 
 if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, signal_handler)
-    
-    windows = {}
-
-    for w in windows_name:
-        windows[w] = Window(w)
-
-    # Create a VideoCapture object
-    folder = "data6"
-    specific_name = "video1.avi"
-    filename = "data/video/" + folder + "/hilal/" + specific_name
-    cap = cv2.VideoCapture(filename)
-
-    flat_image = None
-    flat_filename = "data/video/" + folder + "/flat/flat.jpg" 
-    flat_image = cv2.imread(flat_filename)
-    
-    
-    dark_image = None
-    dark_filename = "data/video/" + folder + "/dark/dark.jpg" 
-    dark_image = cv2.imread(dark_filename)
-    
-
-    # Check if camera opened successfully
-    if (cap.isOpened() == False):
-        print("Unable to read camera feed")
-
-    # Default resolutions of the frame are obtained.The default resolutions are system dependent.
-    # We convert the resolutions from float to integer.
-    frame_width = int(cap.get(3))
-    frame_height = int(cap.get(4))
 
     # read external file
-    fh = open("parameters.txt", "r")
+    fh = open(configuration_filename, "r")
     parameters = fh.readlines()
     fh.close()
     # remove new line string
@@ -108,7 +81,8 @@ if __name__ == "__main__":
     # get each variables
     min_stack = int(parameters[parameters.index("min_stack")+1])
     max_stack = int(parameters[parameters.index("max_stack")+1])
-    image_enhancement_mode = int(parameters[parameters.index("image_enhancement_mode")+1])
+    image_enhancement_mode = int(
+        parameters[parameters.index("image_enhancement_mode")+1])
     constant = int(parameters[parameters.index("constant")+1])
     power = int(parameters[parameters.index("power")+1])
     clip_limit = int(parameters[parameters.index("clip_limit")+1])
@@ -119,6 +93,12 @@ if __name__ == "__main__":
     cht_min_dist = int(parameters[parameters.index("cht_min_dist")+1])
     cht_min_radius = int(parameters[parameters.index("cht_min_radius")+1])
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
+
+    
+    windows = {}
+
+    for w in windows_name:
+        windows[w] = Window(w)
 
     ### STACKED IMAGE
     windows["image_stacking"].addTrackbar("min_stack", 0, 255, callback)
@@ -161,26 +141,46 @@ if __name__ == "__main__":
     windows["circle_hough_transform"].setTrackbarPos("cht_min_radius", cht_min_radius)
     windows["circle_hough_transform"].setTrackbarPos("cht_max_radius", cht_max_radius)
     
+    # Create a VideoCapture object
+    folder = "data6"
+    specific_name = "video1.avi"
+    filename = "data/video/" + folder + "/hilal/" + specific_name
+    cap = cv2.VideoCapture(filename)
+
+    flat_image = None
+    flat_filename = "data/video/" + folder + "/flat/flat.jpg"
+    flat_image = cv2.imread(flat_filename)
+
+    dark_image = None
+    dark_filename = "data/video/" + folder + "/dark/dark.jpg"
+    dark_image = cv2.imread(dark_filename)
+
+    # Check if camera opened successfully
+    if (cap.isOpened() == False):
+        print("Unable to read camera feed")
+
+    # Default resolutions of the frame are obtained.The default resolutions are system dependent.
+    # We convert the resolutions from float to integer.
+    frame_width = int(cap.get(3))
+    frame_height = int(cap.get(4))
+
+
     i = 0
     images = []
     raw_img = None
     stacked_image = None
+    n_stack = 100
     while (True):
         ret, img = cap.read()
 
-        if ret == True and i <= 100: 
+        if ret == True and i <= n_stack: 
             if not dark_image is None :
-                # uncalibrated = resizeImage(img.copy())
                 img = darkProcessor(img, dark_image)
-                # cv2.imshow("uncalibrated", uncalibrated)
-                # cv2.imshow("dark", resizeImage(dark_image))
             if not flat_image is None :
+                if not dark_image is None :
+                    flat_image = darkProcessor(flat_image, dark_image)
                 img = flatProcessor(img, flat_image)
             raw_img = img.copy()
-            # windows["raw_image"].setImage(img)
-            # windows["raw_image"].showWindow()
-            enhanced_image = img.copy()
-
             images.append(img)
             i += 1
                 
@@ -188,7 +188,6 @@ if __name__ == "__main__":
         elif i == 0:
             exit()
         else :
-            # print(len(images))
             stacked_image = images[0].astype(np.float64)
             for i in range(1, i) :
                 stacked_image += images[i]
@@ -247,11 +246,9 @@ if __name__ == "__main__":
             windows["clahe"].setImage(enhanced_image)
             windows["clahe"].showWindow()
         elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
-            enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2GRAY)
-            enhanced_image = cv2.equalizeHist(enhanced_image)
-            windows["power_law"].setImage(enhanced_image)
-            windows["power_law"].showWindow()
-            enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_GRAY2BGR)
+            enhanced_image = equalizeHistogram(enhanced_image)
+            windows["histogram_equalization"].setImage(enhanced_image)
+            windows["histogram_equalization"].showWindow()
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
             enhanced_image = fourierTransform(enhanced_image)
             windows["fourier"].setImage(enhanced_image)
@@ -301,20 +298,19 @@ if __name__ == "__main__":
         windows["raw_image"].moveWindow(50, 100)
         windows["image_stacking"].moveWindow(475, 100)
         windows["image_enhancement"].moveWindow(900, 100)
+        windows["fourier"].moveWindow(1325, 100)
+        windows["clahe"].moveWindow(1325, 100)
+        windows["power_law"].moveWindow(1325, 100)
+        windows["histogram_equalization"].moveWindow(1325, 100)
         if (image_enhancement_mode == MODE_POWER_LOW):
-            windows["fourier"].moveWindow(1325, 100)
-            windows["clahe"].moveWindow(1325, 100)
-            windows["power_law"].moveWindow(1325, 100)
+            windows["power_law"].showWindow()
         elif (image_enhancement_mode == MODE_CLAHE) :
-            windows["clahe"].moveWindow(1325, 100)
-            windows["power_law"].moveWindow(1325, 100)
-            windows["fourier"].moveWindow(1325, 100)
+            windows["clahe"].showWindow()
+        elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION) :
+            windows["histogram_equalization"].showWindow()
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
-            windows["fourier"].moveWindow(1325, 100)
-            windows["power_law"].moveWindow(1325, 100)
-            windows["clahe"].moveWindow(1325, 100)
+            windows["fourier"].showWindow()
         
-
         windows["histogram"].moveWindow(50, 550)
         windows["blur"].moveWindow(475, 550)
         windows["canny_edge"].moveWindow(900, 550)

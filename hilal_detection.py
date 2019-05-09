@@ -9,10 +9,12 @@ import numpy as np
 
 import datetime
 
-currentDT = datetime.datetime.now()
-current_time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
+ON = True
+OFF = False
+CAMERA_MODE = ON
 
 global tframe
+
 # frame_width = 320
 # frame_height = 240
 # frame_width = 3096
@@ -36,6 +38,7 @@ MODE_FOURIER_TRANSFORM = 4
 empty_image = np.zeros((1, 1, 3), np.uint8)
 
 # Variable initiation
+configuration_filename = "parameters.txt"
 parameters = []
 min_stack = None
 max_stack = None
@@ -50,8 +53,7 @@ cht_min_dist = None
 cht_min_radius = None
 cht_max_radius = None
 
-
-def saveConfiguration(filename, ):
+def saveConfiguration():
     # update variable value
     parameters[parameters.index("min_stack")+1] = str(min_stack)
     parameters[parameters.index("max_stack")+1] = str(max_stack)
@@ -69,31 +71,21 @@ def saveConfiguration(filename, ):
     parameters[parameters.index("cht_min_radius")+1] = str(cht_min_radius)
     parameters[parameters.index("cht_max_radius")+1] = str(cht_max_radius)
 
-    fw = open(filename, "w")
+    fw = open(configuration_filename, "w")
     [fw.write(p + "\n") for p in parameters]
     fw.close()
 
 
 def signal_handler(sig, frame):
-    saveConfiguration("parameters.txt")
+    saveConfiguration()
     sys.exit(0)
 
 if __name__ == "__main__":
 
     signal.signal(signal.SIGINT, signal_handler)
 
-    folder = "subang"
-
-    flat_image = None
-    flat_filename = "data/video/" + folder + "/flat.jpg"
-    flat_image = cv2.imread(flat_filename)
-
-    dark_image = None
-    dark_filename = "data/video/" + folder + "/dark.jpg"
-    dark_image = cv2.imread(dark_filename)
-
     # read external file
-    fh = open("parameters.txt", "r")
+    fh = open(configuration_filename, "r")
     parameters = fh.readlines()
     fh.close()
     # remove new line string
@@ -114,6 +106,7 @@ if __name__ == "__main__":
     cht_min_dist = int(parameters[parameters.index("cht_min_dist")+1])
     cht_min_radius = int(parameters[parameters.index("cht_min_radius")+1])
     cht_max_radius = int(parameters[parameters.index("cht_max_radius")+1])
+
 
     ### init windows for interface
     windows = {}
@@ -168,6 +161,16 @@ if __name__ == "__main__":
     # windows["circle_hough_transform"].setTrackbarPos(
     #     "cht_max_radius", cht_max_radius)
 
+    folder = "subang"
+
+    flat_image = None
+    flat_filename = "data/video/" + folder + "/flat.jpg"
+    flat_image = cv2.imread(flat_filename)
+
+    dark_image = None
+    dark_filename = "data/video/" + folder + "/dark.jpg"
+    dark_image = cv2.imread(dark_filename)
+
     camera, camera_name = initCamera(frame_width, frame_height)
 
     print('Enabling stills mode')
@@ -196,6 +199,9 @@ if __name__ == "__main__":
     except:
         pass
     
+
+    currentDT = datetime.datetime.now()
+    current_time = currentDT.strftime("%Y-%m-%d %H:%M:%S")
     FILE_OUTPUT = 'video/' + camera_name + ' - ' +  current_time + '.avi'
 
     ### init video writer to save video
@@ -216,9 +222,11 @@ if __name__ == "__main__":
         while True:
             tframe = camera.capture_video_frame()
             if not dark_image is None:
-                tframe = darkProcessor(tframe, dark_image)
+                img = darkProcessor(img, dark_image)
             if not flat_image is None :
-                tframe = flatProcessor(tframe, flat_image)
+                if not dark_image is None :
+                    flat_image = darkProcessor(flat_image, dark_image)
+                img = flatProcessor(img, flat_image)            
             rgb = cv2.cvtColor(tframe, cv2.COLOR_GRAY2RGB)
             out.write(rgb)
             images.append(tframe)
@@ -238,14 +246,6 @@ if __name__ == "__main__":
                 mean_image = sum_images / n_stack
             
             mean_image = mean_image.astype(np.uint8)
-            
-            # print("mean_image")
-            # print(mean_image)
-            # print("sum_images")
-            # print(sum_images)
-
-            # cv2.imshow("stack", mean_image)
-            # cv2.imshow("raw", tframe)
 
             raw = tframe
             # enhanced_image = raw.copy()
@@ -296,11 +296,9 @@ if __name__ == "__main__":
                 windows["clahe"].setImage(enhanced_image)
                 windows["clahe"].showWindow()
             elif (image_enhancement_mode == MODE_HISTOGRAM_EQUALIZATION):
-                # enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_RGB2GRAY)
-                enhanced_image = cv2.equalizeHist(enhanced_image)
-                windows["power_law"].setImage(enhanced_image)
-                windows["power_law"].showWindow()
-                enhanced_image = cv2.cvtColor(enhanced_image, cv2.COLOR_GRAY2BGR)
+                enhanced_image = equalizeHistogram(enhanced_image)
+                windows["histogram_equalization"].setImage(enhanced_image)
+                windows["histogram_equalization"].showWindow()
             elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM):
                 enhanced_image = fourierTransform(enhanced_image)
                 windows["fourier"].setImage(enhanced_image)
