@@ -135,6 +135,25 @@ def buildHistogramFromImage(image):
     h = np.flipud(h)
     return h
 
+def getMostFrequentIntensity (image) :
+    if not isGrayImage(image):
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    h = np.zeros((300, 256))
+    color = [(255, 0, 0)]
+    bins = np.arange(256).reshape(256, 1)
+    idx_max = 0
+    for ch, col in enumerate(color):
+        hist_item = cv2.calcHist([image], [ch], None, [256], [0, 256])
+        cv2.normalize(hist_item, hist_item, 0, 255, cv2.NORM_MINMAX)
+        hist = np.int32(np.around(hist_item))
+        idx_max = np.argmax(hist)
+        pts = np.column_stack((bins, hist))
+        cv2.polylines(h, [pts], False, col)
+    h = np.flipud(h)
+
+    return idx_max
+
+
 def initCamera(cam_width=320, cam_height=240):
 
     env_filename = os.getenv('ZWO_ASI_LIB')
