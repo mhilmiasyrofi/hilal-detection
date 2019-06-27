@@ -10,7 +10,7 @@ import sys
 import matplotlib.pyplot as plt
 
 windows_name = ["raw_image", "image_stacking", "image_enhancement", "lhe", "clahe", "ghe", "power_law", "fourier",
-                "histogram", "blur", "canny_edge", "circle_hough_transform"]
+                "histogram", "blur", "edge_detection", "circle_hough_transform"]
 
 removed = []
 
@@ -32,6 +32,7 @@ min_stack = None
 max_stack = None
 image_enhancement_mode = None
 power = None
+window_size = None
 clip_limit = None
 tile_grid_size = None
 blur_size = None
@@ -49,6 +50,7 @@ def saveConfiguration():
         "image_enhancement_mode")+1] = str(image_enhancement_mode)
     parameters[parameters.index("constant")+1] = str(constant)
     parameters[parameters.index("power")+1] = str(power)
+    parameters[parameters.index("window_size")+1] = str(window_size)
     parameters[parameters.index("clip_limit")+1] = str(clip_limit)
     parameters[parameters.index("tile_grid_size")+1] = str(tile_grid_size)
     parameters[parameters.index("blur_size")+1] = str(blur_size)
@@ -93,6 +95,7 @@ if __name__ == "__main__":
         parameters[parameters.index("image_enhancement_mode")+1])
     constant = int(parameters[parameters.index("constant")+1])
     power = int(parameters[parameters.index("power")+1])
+    window_size = int(parameters[parameters.index("window_size")+1])
     clip_limit = int(parameters[parameters.index("clip_limit")+1])
     tile_grid_size = int(parameters[parameters.index("tile_grid_size")+1])
     blur_size = int(parameters[parameters.index("blur_size")+1])
@@ -129,6 +132,9 @@ if __name__ == "__main__":
     windows["clahe"].addTrackbar("tile_grid_size", 0, 100, callback)
     windows["clahe"].setTrackbarPos("tile_grid_size", tile_grid_size)
 
+    windows["lhe"].addTrackbar("window_size", 0, 100, callback)
+    windows["lhe"].setTrackbarPos("window_size", window_size)
+
     ### BLUR
     blur_number = 1
     windows["blur"].addTrackbar("blur_size", 0, 15, callback)
@@ -137,10 +143,10 @@ if __name__ == "__main__":
     # windows["blur"].setTrackbarPos("blur_number", blur_number)
 
     ### CANNY EDGE DETECTOR
-    windows["canny_edge"].addTrackbar("canny_min_val", 0, 500, callback)
-    windows["canny_edge"].addTrackbar("canny_max_val", 0, 500, callback)
-    windows["canny_edge"].setTrackbarPos("canny_min_val", canny_min_val)
-    windows["canny_edge"].setTrackbarPos("canny_max_val", canny_max_val)
+    windows["edge_detection"].addTrackbar("canny_min_val", 0, 500, callback)
+    windows["edge_detection"].addTrackbar("canny_max_val", 0, 500, callback)
+    windows["edge_detection"].setTrackbarPos("canny_min_val", canny_min_val)
+    windows["edge_detection"].setTrackbarPos("canny_max_val", canny_max_val)
 
     ### CIRCLE HOUGH TRANSFORM
     circles = []
@@ -211,9 +217,6 @@ if __name__ == "__main__":
     stacked_image = stacked_image/i
     stacked_image = stacked_image.astype(np.uint8)
 
-    # min_intensity = getMostFrequentIntensity(stacked_image) - 3
-    # windows["image_stacking"].setTrackbarPos("min_stack", min_intensity)
-
     kernel = np.ones((3, 3), np.uint8)
     kernel[0][0] = 0
     kernel[0][2] = 0
@@ -266,6 +269,8 @@ if __name__ == "__main__":
         windows["fourier"].showWindow()
         windows["ghe"].setImage(empty_image)
         windows["ghe"].showWindow()
+        windows["lhe"].setImage(empty_image)
+        windows["lhe"].showWindow()
         enhanced_image = img
         if (image_enhancement_mode == MODE_POWER_LOW):
             last_constant = constant
@@ -313,6 +318,11 @@ if __name__ == "__main__":
             windows["clahe"].showWindow()
             if last_clip_limit == clip_limit and last_tile_grid_size == tile_grid_size :
                 is_done_automatic_mode = True
+        elif (image_enhancement_mode == MODE_LHE):
+            window_size = windows["lhe"].getTrackbarPos("window_size")
+            enhanced_image = localHistogramEqualization(img, window_size)
+            windows["lhe"].setImage(enhanced_image)
+            windows["lhe"].showWindow()
         elif (image_enhancement_mode == MODE_GHE):
             is_done_automatic_mode = True
             enhanced_image = equalizeHistogram(img)
@@ -330,27 +340,21 @@ if __name__ == "__main__":
 
         blur_size = windows["blur"].getTrackbarPos("blur_size")
         blur = cv2.GaussianBlur(enhanced_image, (blur_size*2 + 1, blur_size*2 + 1), 0)
-        # enhanced_image = 255 - enhanced_image
-        # enhanced_image = contrastEnhancement(enhanced_image, kernel)
-        # blur = morphologicalDilationResidu(enhanced_image, kernel)
-
-        # for i in range(1, blur_number) :
-        #     blur = cv2.GaussianBlur(blur, (blur_size*2 + 1, blur_size*2 + 1), 0)
-        #     blur = cv2.medianBlur(blur, blur_size*2 + 1)
+  
         windows["blur"].setImage(blur)
         windows["blur"].showWindow()
 
-        canny_min_val = windows["canny_edge"].getTrackbarPos("canny_min_val")
-        canny_max_val = windows["canny_edge"].getTrackbarPos("canny_max_val")
+        canny_min_val = windows["edge_detection"].getTrackbarPos("canny_min_val")
+        canny_max_val = windows["edge_detection"].getTrackbarPos("canny_max_val")
         # edge = sobelEdgeDetection(blur)
         # edge = cv2.Laplacian(blur, cv2.CV_64F)
         # edge, canny_min_val, canny_max_val = autoCanny(blur)
-        # windows["canny_edge"].setTrackbarPos("canny_max_val",canny_max_val)
-        # windows["canny_edge"].setTrackbarPos("canny_min_val",canny_min_val)
+        # windows["edge_detection"].setTrackbarPos("canny_max_val",canny_max_val)
+        # windows["edge_detection"].setTrackbarPos("canny_min_val",canny_min_val)
         edge = cannyEdgeDetection(blur, canny_min_val, canny_max_val)
         # edge = sobelEdgeDetection(blur)
-        windows["canny_edge"].setImage(edge)
-        windows["canny_edge"].showWindow()
+        windows["edge_detection"].setImage(edge)
+        windows["edge_detection"].showWindow()
 
         circle_img = enhanced_image.copy()
         if is_done_automatic_mode == True :
@@ -381,18 +385,21 @@ if __name__ == "__main__":
         windows["clahe"].moveWindow(1325, 100)
         windows["power_law"].moveWindow(1325, 100)
         windows["ghe"].moveWindow(1325, 100)
+        windows["lhe"].moveWindow(1325, 100)
         if (image_enhancement_mode == MODE_POWER_LOW):
             windows["power_law"].showWindow()
         elif (image_enhancement_mode == MODE_CLAHE) :
             windows["clahe"].showWindow()
         elif (image_enhancement_mode == MODE_GHE) :
             windows["ghe"].showWindow()
+        elif (image_enhancement_mode == MODE_LHE) :
+            windows["lhe"].showWindow()
         elif (image_enhancement_mode == MODE_FOURIER_TRANSFORM) : 
             windows["fourier"].showWindow()
         
         windows["histogram"].moveWindow(50, 550)
         windows["blur"].moveWindow(475, 550)
-        windows["canny_edge"].moveWindow(900, 550)
+        windows["edge_detection"].moveWindow(900, 550)
         windows["circle_hough_transform"].moveWindow(1325, 550)
 
         k = cv2.waitKey(1) & 0xFF

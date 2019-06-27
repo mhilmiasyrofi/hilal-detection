@@ -1,38 +1,41 @@
 min_stack
-201
+0
 
 max_stack
 255
 
 image_enhancement_mode
-3
+2
 
 constant
-3
+100
 
 power
-118
+100
+
+window_size
+10
 
 clip_limit
-0
+50
 
 tile_grid_size
-0
+10
 
 blur_size
 0
 
 canny_min_val
-20
+158
 
 canny_max_val
-70
+320
 
 cht_min_dist
-254
+203
 
 cht_min_radius
-125
+124
 
 cht_max_radius
-270
+226

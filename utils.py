@@ -1,4 +1,6 @@
 from matplotlib import pyplot as plt
+from skimage.filters import rank
+import skimage.morphology as morp   
 import argparse
 import os
 import sys
@@ -36,6 +38,13 @@ def equalizeHistogram(image):
     image = cv2.equalizeHist(image)
     image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     return image
+
+def localHistogramEqualization(image, window_size) :
+    kernel = morp.disk(window_size)
+    image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+    img_local = rank.equalize(image, selem=kernel)
+    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    return img_local
 
 
 def powerLawTransformation(img, constant=100, power=100):
