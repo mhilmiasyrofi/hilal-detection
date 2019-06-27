@@ -9,8 +9,10 @@ import signal
 import cv2
 import numpy as np
 
+
 def callback(x):
     pass
+
 
 def resizeImage(img):
     if img.shape[0] > 300:
@@ -28,19 +30,25 @@ def convertFloat64ImgtoUint8(img):
     img = img.astype(np.uint8)
     return img
 
-def equalizeHistogram(image) :
+
+def equalizeHistogram(image):
     image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     image = cv2.equalizeHist(image)
     image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
     return image
 
 
-def powerLawTransformation(img, constant=10, power=100):
+def powerLawTransformation(img, constant=100, power=100):
     power_law = img.astype(np.float64)
     power_law = power_law/255
-    power_law = cv2.pow(power_law, power/100)
-    power_law = convertFloat64ImgtoUint8(power_law)
-    power_law = power_law * float(constant/10)
+    power_law = cv2.pow(power_law, float(power/100))
+    power_law = power_law*255
+    # power_law = convertFloat64ImgtoUint8(power_law)
+    # print("power_law sebelum")
+    # print(power_law)
+    power_law = power_law * float(constant/100)
+    # print("power_law sesudah")
+    # print(power_law)
     power_law = np.where(power_law > 254, 254, power_law)
     power_law = np.where(power_law < 0, 0, power_law)
     power_law = power_law.astype(np.uint8)
@@ -64,7 +72,7 @@ def clahe(image, clipLimit=2.0, tileGridSize=8):
 def fourierTransform(image):
     if not isGrayImage(image):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    
+
     dft = cv2.dft(np.float32(image), flags=cv2.DFT_COMPLEX_OUTPUT)
     dft_shift = np.fft.fftshift(dft)
     magnitude_spectrum = 20 * \
@@ -89,12 +97,47 @@ def fourierTransform(image):
     image_back = 255 * image_back  # Now scale by 255
     image = image_back.astype(np.uint8)
 
-    image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
+    image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
     return image
 
+def sobelEdgeDetection(img, sobel_kernel=5, scale=1, delta=0):
+    ddepth = cv2.CV_16S
 
-def release_list(l):
+    grad_x = cv2.Sobel(img, ddepth, 1, 0, ksize=sobel_kernel, scale=scale,
+                       delta=delta, borderType=cv2.BORDER_DEFAULT)
+  
+    grad_y = cv2.Sobel(img, ddepth, 0, 1, ksize=sobel_kernel, scale=scale,
+                       delta=delta, borderType=cv2.BORDER_DEFAULT)
+
+    abs_grad_x = cv2.convertScaleAbs(grad_x)
+    abs_grad_y = cv2.convertScaleAbs(grad_y)
+
+    grad = cv2.addWeighted(abs_grad_x, 0.5, abs_grad_y, 0.5, 0)
+    # print(np.max(grad))
+    # print(np.median(grad))
+    return grad
+
+def cannyEdgeDetection(image, lower_threshold, upper_threshold):
+
+    edges = cv2.Canny(image, lower_threshold, upper_threshold, 3)
+    
+    return edges
+
+
+def autoCanny(image, sigma=0.5):
+    # compute the median of the single channel pixel intensities
+    v = np.median(image)
+
+    # apply automatic Canny edge detection using the computed median
+    lower_threshold = int(max(0, (1.0 - sigma) * v))
+    upper_threshold = int(min(255, (1.0 + sigma) * v))
+    edges = cv2.Canny(image, lower_threshold, upper_threshold)
+    return edges, lower_threshold, upper_threshold
+
+
+
+def releaseList(l):
     del l[:]
     del l
 
@@ -152,7 +195,7 @@ def getMostFrequentIntensity (image) :
     h = np.flipud(h)
 
     return idx_max
-
+        
 
 def initCamera(cam_width=320, cam_height=240):
 
@@ -252,3 +295,22 @@ def initCamera(cam_width=320, cam_height=240):
 # def calculateMoonRadius(focal_length, camera_fow, camera_resolution) :
 #     plate_scale = 206265 / focal_length # second per mili
 #     plate_scale /= 60 # minute per mili
+
+def whiteTopHatTransform(image, kernel) :
+    return cv2.morphologyEx(image, cv2.MORPH_TOPHAT, kernel)
+
+def blackTopHatTransform(image, kernel) :
+    return cv2.morphologyEx(image, cv2.MORPH_BLACKHAT, kernel)
+
+def contrastEnhancement(image, kernel) :
+    initial_image = image.copy()
+    wth = whiteTopHatTransform(image, kernel)
+    bth = blackTopHatTransform(image, kernel)
+    return initial_image + wth - bth
+
+def morphologicalDilationResidu(image, kernel) :
+    initial_image = image.copy()
+    dilated_image = cv2.dilate(image, kernel, iterations=1)
+    return dilated_image - initial_image
+
+
