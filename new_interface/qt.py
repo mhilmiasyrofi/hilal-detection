@@ -43,7 +43,6 @@ class HilalDetectionWidget(QtWidgets.QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.image = QtGui.QImage()
-        self.displayed_image = QtGui.QImage()
         self._red = (0, 0, 255)
         self._width = 2
         self._min_size = (30, 30)
@@ -64,6 +63,12 @@ class HilalDetectionWidget(QtWidgets.QWidget):
             self.set_rgb_image()
         else :
             self.set_equalize_image()
+        self.update()
+
+    def paintEvent(self, event):
+        painter = QtGui.QPainter(self)
+        painter.drawImage(0, 0, self.image)
+        self.image = QtGui.QImage()
 
     def get_qimage(self, image: np.ndarray):
         height, width, colors = image.shape
@@ -91,32 +96,26 @@ class HilalDetectionWidget(QtWidgets.QWidget):
                        QImage.Format_Grayscale8)
         return image
 
-    def paintEvent(self, event):
-        painter = QtGui.QPainter(self)
-        painter.drawImage(0, 0, self.image)
-        self.image = QtGui.QImage()
 
     def set_rgb_image(self) :
         self.image = self.get_qimage(self.raw_image)
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
-        self.update()
 
     def set_equalize_image(self) :
         self.image = self.get_qimage_gray(self.equalize_image)
         if self.image.size() != self.size():
             self.setFixedSize(self.image.size())
-        self.update()
     
     def setState(self) :
         source = self.sender()
 
         if source.text() == "RGB" :
             self.state = MODE_RAW
-            self.set_rgb_image()
-        else :
+        elif source.text() == "Equalize":
             self.state = MODE_EQUALIZE
-            self.set_equalize_image()
+        else:
+            self.state = MODE_RAW
 
 
 class MainWidget(QtWidgets.QWidget):
